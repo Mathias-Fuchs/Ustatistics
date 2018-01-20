@@ -292,6 +292,12 @@ int main (int argc, char ** argv) {
   size_t p = 3;
   int B = 0;
   int seed = 1234;
+
+  if (argc != 4) {
+    fprintf(stderr, "need 3 command line arguments: the number of resample in each iteration, a random seed, and the learning set size (needs to be between 3 and 102\n");
+    exit(1);
+  }
+
   sscanf(argv[1], "%i", &B);
   size_t Br = (size_t) B;
   sscanf(argv[2], "%i", &seed);
@@ -330,7 +336,6 @@ int main (int argc, char ** argv) {
   gsl_matrix_free(X);
   gsl_vector_free(y);
 
-  printf("%f \n", lpo);
   printf("%f %f %f\n", lpo, t2, gsl_pow_2(lpo) - t2);
 
   return 0;
