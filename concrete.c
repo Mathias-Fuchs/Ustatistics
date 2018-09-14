@@ -1,3 +1,4 @@
+
 /*
  *  calculates classification loss, and estimates the standard error by a U-statistic
  *  Copyright (C) 2013  Mathias Fuchs
@@ -291,28 +292,41 @@ int main (int argc, char ** argv) {
   
   size_t n = 103;
   size_t p = 3;
-  int B = B;
+  int B = 1e6;
   int seed = 1234;
+  int g = 40;
 
   if (argc != 4) {
-    fprintf(stderr, "need 3 command line arguments: the number of resample in each iteration, a random seed, and the learning set size (needs to be between 3 and 102\n");
-    exit(1);
+    fprintf(stdout, "need 3 command line arguments: the number of resample in each iteration, a random seed, and the learning set size (needs to be between 3 and 102\n");
   }
 
-  sscanf(argv[1], "%i", &B);
-  size_t Br = (size_t) B;
-  sscanf(argv[2], "%i", &seed);
-  int gg = 0; 
-  sscanf(argv[3], "%i", &gg);
-  size_t g = (size_t) gg;  
+
+  /*
+  sscanf(argv[1], "number of resamples in each iteration: %i", &B);
   
+  sscanf(argv[2], "random seed: %i", &seed);
+  int gg = 0; 
+  sscanf(argv[3], "learning set size: %i", &gg);
+  size_t g = (size_t) gg;  
+  */
+
+  size_t Br = (size_t)B;
   gsl_matrix * X = gsl_matrix_alloc(n, p);
   FILE * f = fopen("slump.dat", "rb");
-  gsl_matrix_fscanf(f, X);
+
+  if (!f) {
+	  fprintf(stderr, "input file not found!\n");
+  }
+
+  int h = gsl_matrix_fscanf(f, X);
   fclose(f);
 
   gsl_vector * y = gsl_vector_alloc(103);
   f = fopen("slumpResponse.dat", "rb");
+
+  if (!f) {
+	  fprintf(stderr, "response input file not found!\n");
+  }
   gsl_matrix * dummy = gsl_matrix_alloc(1, 103);
   gsl_matrix_fscanf(f, dummy);
   fclose(f);
