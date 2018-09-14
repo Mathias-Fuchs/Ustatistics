@@ -21,6 +21,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <gsl/gsl_vector_double.h>
 #include <gsl/gsl_matrix.h>
 #include <gsl/gsl_math.h>
 #include <gsl/gsl_rng.h>
@@ -91,7 +92,7 @@ gsl_matrix * inv2 (const gsl_matrix * m) {
   assert(m -> size2 == 3);
   gsl_matrix * a = gsl_matrix_alloc(3,3);
   double p = gsl_matrix_get(m, 2, 2) * gsl_matrix_get(m, 1, 1) - gsl_pow_2(gsl_matrix_get(m, 1, 2));
-  double q = gsl_matrix_get(m, 2, 2) * gsl_matrix_get(m, 0, 1)  - gsl_matrix_get(m, 2, 1) * gsl_matrix_get(m, 0, 2);
+  double q = gsl_matrix_get(m, 2, 2) * gsl_matrix_get(m, 0, 1) - gsl_matrix_get(m, 2, 1) * gsl_matrix_get(m, 0, 2);
   double r = gsl_matrix_get(m, 1, 2) * gsl_matrix_get(m, 0, 1) - gsl_matrix_get(m, 1, 1) * gsl_matrix_get(m, 0, 2);
   double D = gsl_matrix_get(m, 0,0) * p - gsl_matrix_get(m, 1, 0) * q + gsl_matrix_get(m, 2, 0) * r;
   assert(D != 0);
@@ -290,7 +291,7 @@ int main (int argc, char ** argv) {
   
   size_t n = 103;
   size_t p = 3;
-  int B = 0;
+  int B = B;
   int seed = 1234;
 
   if (argc != 4) {
@@ -309,8 +310,6 @@ int main (int argc, char ** argv) {
   FILE * f = fopen("slump.dat", "rb");
   gsl_matrix_fscanf(f, X);
   fclose(f);
-  //  writeDoubleMatrix(X);
-
 
   gsl_vector * y = gsl_vector_alloc(103);
   f = fopen("slumpResponse.dat", "rb");
@@ -324,7 +323,6 @@ int main (int argc, char ** argv) {
 
   gsl_matrix_free(dummy);
 
-  // writeDoubleVector(y);
 
   gsl_rng * r = gsl_rng_alloc(gsl_rng_taus2);
   gsl_rng_set(r, seed);
