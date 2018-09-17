@@ -34,10 +34,7 @@
 
 
 void sampleWithoutReplacement (const size_t populationSize, const size_t sampleSize, size_t * subsample, gsl_rng * r) {
-  //    int populationSize,    // size of set sampling from
-  //  int sampleSize,        // size of each sample
-  //  vector<int> & samples  // output, zero-offset indicies to selected items
-  
+
   // Use Knuth's variable names
   int n = sampleSize;
   int N = populationSize;
@@ -109,6 +106,34 @@ gsl_matrix * inv2 (const gsl_matrix * m) {
   gsl_matrix_scale(a, 1/D);
   
   return a;
+}
+
+
+
+// in place inversion of symmetric 3-by-3-matrix
+int inv2inPlace(const gsl_matrix * m, gsl_matrix* result) {
+	assert(m->size1 == 3);
+	assert(m->size2 == 3);
+	assert(result->size1 == 3);
+	assert(result->size2 == 3);
+
+	double p = gsl_matrix_get(m, 2, 2) * gsl_matrix_get(m, 1, 1) - gsl_pow_2(gsl_matrix_get(m, 1, 2));
+	double q = gsl_matrix_get(m, 2, 2) * gsl_matrix_get(m, 0, 1) - gsl_matrix_get(m, 2, 1) * gsl_matrix_get(m, 0, 2);
+	double r = gsl_matrix_get(m, 1, 2) * gsl_matrix_get(m, 0, 1) - gsl_matrix_get(m, 1, 1) * gsl_matrix_get(m, 0, 2);
+	double D = gsl_matrix_get(m, 0, 0) * p - gsl_matrix_get(m, 1, 0) * q + gsl_matrix_get(m, 2, 0) * r;
+	if (D < 0.00001 && D > -0.00001) return 0;
+	gsl_matrix_set(result, 0, 0, p);
+	gsl_matrix_set(result, 0, 1, -q);
+	gsl_matrix_set(result, 1, 0, -q);
+	gsl_matrix_set(result, 0, 2, r);
+	gsl_matrix_set(result, 2, 0, r);
+	gsl_matrix_set(result, 1, 1, gsl_matrix_get(m, 2, 2) * gsl_matrix_get(m, 0, 0) - gsl_pow_2(gsl_matrix_get(m, 0, 2)));
+	gsl_matrix_set(result, 1, 2, gsl_matrix_get(m, 0, 1) * gsl_matrix_get(m, 0, 2) - gsl_matrix_get(m, 0, 0) * gsl_matrix_get(m, 1, 2));
+	gsl_matrix_set(result, 2, 1, gsl_matrix_get(result, 1, 2));
+	gsl_matrix_set(result, 2, 2, gsl_matrix_get(m, 0, 0) * gsl_matrix_get(m, 1, 1) - gsl_pow_2(gsl_matrix_get(m, 0, 1)));
+	gsl_matrix_scale(result, 1 / D);
+
+	return 1;
 }
 
 gsl_matrix * RandomData (size_t n, size_t  p, gsl_rng * r) {
@@ -188,6 +213,8 @@ double gamma(const gsl_matrix * data, const gsl_vector * response) {
 
   // E will hold the coefficients, namely the results of (Xlearn^T Xlearn)^{-1} * Xlearn^T ylearn
   gsl_matrix * i = inv2(C);
+
+
   gsl_blas_dsymv(CblasUpper, 1.0, i, D, 0, E);
 
 
