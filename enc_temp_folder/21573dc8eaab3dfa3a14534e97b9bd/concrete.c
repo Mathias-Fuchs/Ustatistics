@@ -95,8 +95,33 @@ double myMean2(const gsl_vector * x, const size_t until) {
 }
 
 
-
 // inversion of symmetric 3-by-3-matrix
+gsl_matrix * inv2(const gsl_matrix * m) {
+	assert(m->size1 == 3);
+	assert(m->size2 == 3);
+	gsl_matrix * a = gsl_matrix_alloc(3, 3);
+	double p = gsl_matrix_get(m, 2, 2) * gsl_matrix_get(m, 1, 1) - gsl_pow_2(gsl_matrix_get(m, 1, 2));
+	double q = gsl_matrix_get(m, 2, 2) * gsl_matrix_get(m, 0, 1) - gsl_matrix_get(m, 2, 1) * gsl_matrix_get(m, 0, 2);
+	double r = gsl_matrix_get(m, 1, 2) * gsl_matrix_get(m, 0, 1) - gsl_matrix_get(m, 1, 1) * gsl_matrix_get(m, 0, 2);
+	double D = gsl_matrix_get(m, 0, 0) * p - gsl_matrix_get(m, 1, 0) * q + gsl_matrix_get(m, 2, 0) * r;
+	assert(D != 0);
+	gsl_matrix_set(a, 0, 0, p);
+	gsl_matrix_set(a, 0, 1, -q);
+	gsl_matrix_set(a, 1, 0, -q);
+	gsl_matrix_set(a, 0, 2, r);
+	gsl_matrix_set(a, 2, 0, r);
+	gsl_matrix_set(a, 1, 1, gsl_matrix_get(m, 2, 2) * gsl_matrix_get(m, 0, 0) - gsl_pow_2(gsl_matrix_get(m, 0, 2)));
+	gsl_matrix_set(a, 1, 2, gsl_matrix_get(m, 0, 1) * gsl_matrix_get(m, 0, 2) - gsl_matrix_get(m, 0, 0) * gsl_matrix_get(m, 1, 2));
+	gsl_matrix_set(a, 2, 1, gsl_matrix_get(a, 1, 2));
+	gsl_matrix_set(a, 2, 2, gsl_matrix_get(m, 0, 0) * gsl_matrix_get(m, 1, 1) - gsl_pow_2(gsl_matrix_get(m, 0, 1)));
+	gsl_matrix_scale(a, 1 / D);
+
+	return a;
+}
+
+
+
+// in place inversion of symmetric 3-by-3-matrix
 int inv2inPlace(const gsl_matrix * m, gsl_matrix* result) {
 	assert(m->size1 == 3);
 	assert(m->size2 == 3);
