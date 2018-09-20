@@ -13,6 +13,29 @@ The sample size in the dataset is 103.
 
 So, the maximal sample size allowing for a variance estimator is 51.
 
+# Theoretical background
+
+This repository contains code that re-samples a kernel of a U-statistic often enough to obtain a good approximation of the atactual value of the U-statistic.
+
+In particular, this is applied to the problem of estimating the mean square loss of linear regression where both learning and testing are random.
+
+We denote by *theta* the expectation of the mean square of linear regression.
+Estimating *theta* is done with a U-statistic whose kernel is implemented in the function gamma.
+Let us abbreviate the leave-p-out estimator of theta with TH (for theta-hat.)
+
+Likewise, the  estimator of its variance is given by the difference of two different U-statistics:
+
+- the one that estimates the expectation of the square of TH.
+- the one that estimates the square of the expectation of TH, i.e. the square of theta.
+
+The first of those two is easy: it is already optimally estimated by the square of TH.
+The main purpose of this repository is to provide code that estimates the second optimally with a U-statistic.
+
+Its kernel is implemented in the function kernelforthetasquared.
+
+The entire program then computes the estimated variance of the mean square loss of linear regression.
+ 
+
 
 # Compilation
 requires presence of the gsl library. On debian-related systems, gsl is installed using

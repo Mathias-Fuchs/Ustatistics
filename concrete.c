@@ -1,3 +1,4 @@
+
 /*
  *  calculates classification loss, and estimates the standard error by a U-statistic
  *  Copyright (C) 2013  Mathias Fuchs
@@ -21,6 +22,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <gsl/gsl_vector_double.h>
 #include <gsl/gsl_matrix.h>
 #include <gsl/gsl_math.h>
 #include <gsl/gsl_rng.h>
@@ -32,10 +34,7 @@
 
 
 void sampleWithoutReplacement (const size_t populationSize, const size_t sampleSize, size_t * subsample, gsl_rng * r) {
-  //    int populationSize,    // size of set sampling from
-  //  int sampleSize,        // size of each sample
-  //  vector<int> & samples  // output, zero-offset indicies to selected items
-  
+
   // Use Knuth's variable names
   int n = sampleSize;
   int N = populationSize;
@@ -91,7 +90,7 @@ gsl_matrix * inv2 (const gsl_matrix * m) {
   assert(m -> size2 == 3);
   gsl_matrix * a = gsl_matrix_alloc(3,3);
   double p = gsl_matrix_get(m, 2, 2) * gsl_matrix_get(m, 1, 1) - gsl_pow_2(gsl_matrix_get(m, 1, 2));
-  double q = gsl_matrix_get(m, 2, 2) * gsl_matrix_get(m, 0, 1)  - gsl_matrix_get(m, 2, 1) * gsl_matrix_get(m, 0, 2);
+  double q = gsl_matrix_get(m, 2, 2) * gsl_matrix_get(m, 0, 1) - gsl_matrix_get(m, 2, 1) * gsl_matrix_get(m, 0, 2);
   double r = gsl_matrix_get(m, 1, 2) * gsl_matrix_get(m, 0, 1) - gsl_matrix_get(m, 1, 1) * gsl_matrix_get(m, 0, 2);
   double D = gsl_matrix_get(m, 0,0) * p - gsl_matrix_get(m, 1, 0) * q + gsl_matrix_get(m, 2, 0) * r;
   assert(D != 0);
@@ -107,6 +106,34 @@ gsl_matrix * inv2 (const gsl_matrix * m) {
   gsl_matrix_scale(a, 1/D);
   
   return a;
+}
+
+
+
+// in place inversion of symmetric 3-by-3-matrix
+int inv2inPlace(const gsl_matrix * m, gsl_matrix* result) {
+	assert(m->size1 == 3);
+	assert(m->size2 == 3);
+	assert(result->size1 == 3);
+	assert(result->size2 == 3);
+
+	double p = gsl_matrix_get(m, 2, 2) * gsl_matrix_get(m, 1, 1) - gsl_pow_2(gsl_matrix_get(m, 1, 2));
+	double q = gsl_matrix_get(m, 2, 2) * gsl_matrix_get(m, 0, 1) - gsl_matrix_get(m, 2, 1) * gsl_matrix_get(m, 0, 2);
+	double r = gsl_matrix_get(m, 1, 2) * gsl_matrix_get(m, 0, 1) - gsl_matrix_get(m, 1, 1) * gsl_matrix_get(m, 0, 2);
+	double D = gsl_matrix_get(m, 0, 0) * p - gsl_matrix_get(m, 1, 0) * q + gsl_matrix_get(m, 2, 0) * r;
+	if (D < 0.00001 && D > -0.00001) return 0;
+	gsl_matrix_set(result, 0, 0, p);
+	gsl_matrix_set(result, 0, 1, -q);
+	gsl_matrix_set(result, 1, 0, -q);
+	gsl_matrix_set(result, 0, 2, r);
+	gsl_matrix_set(result, 2, 0, r);
+	gsl_matrix_set(result, 1, 1, gsl_matrix_get(m, 2, 2) * gsl_matrix_get(m, 0, 0) - gsl_pow_2(gsl_matrix_get(m, 0, 2)));
+	gsl_matrix_set(result, 1, 2, gsl_matrix_get(m, 0, 1) * gsl_matrix_get(m, 0, 2) - gsl_matrix_get(m, 0, 0) * gsl_matrix_get(m, 1, 2));
+	gsl_matrix_set(result, 2, 1, gsl_matrix_get(result, 1, 2));
+	gsl_matrix_set(result, 2, 2, gsl_matrix_get(m, 0, 0) * gsl_matrix_get(m, 1, 1) - gsl_pow_2(gsl_matrix_get(m, 0, 1)));
+	gsl_matrix_scale(result, 1 / D);
+
+	return 1;
 }
 
 gsl_matrix * RandomData (size_t n, size_t  p, gsl_rng * r) {
@@ -186,6 +213,8 @@ double gamma(const gsl_matrix * data, const gsl_vector * response) {
 
   // E will hold the coefficients, namely the results of (Xlearn^T Xlearn)^{-1} * Xlearn^T ylearn
   gsl_matrix * i = inv2(C);
+
+
   gsl_blas_dsymv(CblasUpper, 1.0, i, D, 0, E);
 
 
@@ -290,30 +319,41 @@ int main (int argc, char ** argv) {
   
   size_t n = 103;
   size_t p = 3;
-  int B = 0;
+  int B = 1e6;
   int seed = 1234;
+  int g = 40;
 
   if (argc != 4) {
-    fprintf(stderr, "need 3 command line arguments: the number of resample in each iteration, a random seed, and the learning set size (needs to be between 3 and 102\n");
-    exit(1);
+    fprintf(stdout, "need 3 command line arguments: the number of resample in each iteration, a random seed, and the learning set size (needs to be between 3 and 102\n");
   }
 
-  sscanf(argv[1], "%i", &B);
-  size_t Br = (size_t) B;
-  sscanf(argv[2], "%i", &seed);
-  int gg = 0; 
-  sscanf(argv[3], "%i", &gg);
-  size_t g = (size_t) gg;  
+
+  /*
+  sscanf(argv[1], "number of resamples in each iteration: %i", &B);
   
+  sscanf(argv[2], "random seed: %i", &seed);
+  int gg = 0; 
+  sscanf(argv[3], "learning set size: %i", &gg);
+  size_t g = (size_t) gg;  
+  */
+
+  size_t Br = (size_t)B;
   gsl_matrix * X = gsl_matrix_alloc(n, p);
   FILE * f = fopen("slump.dat", "rb");
-  gsl_matrix_fscanf(f, X);
-  fclose(f);
-  //  writeDoubleMatrix(X);
 
+  if (!f) {
+	  fprintf(stderr, "input file not found!\n");
+  }
+
+  int h = gsl_matrix_fscanf(f, X);
+  fclose(f);
 
   gsl_vector * y = gsl_vector_alloc(103);
   f = fopen("slumpResponse.dat", "rb");
+
+  if (!f) {
+	  fprintf(stderr, "response input file not found!\n");
+  }
   gsl_matrix * dummy = gsl_matrix_alloc(1, 103);
   gsl_matrix_fscanf(f, dummy);
   fclose(f);
@@ -324,7 +364,6 @@ int main (int argc, char ** argv) {
 
   gsl_matrix_free(dummy);
 
-  // writeDoubleVector(y);
 
   gsl_rng * r = gsl_rng_alloc(gsl_rng_taus2);
   gsl_rng_set(r, seed);
