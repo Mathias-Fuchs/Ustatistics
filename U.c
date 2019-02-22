@@ -4,7 +4,7 @@
 #include <assert.h>
 
 
-void sampleWithoutReplacement(const size_t populationSize, const size_t sampleSize, size_t * subsample, gsl_rng * r) {
+static inline void sampleWithoutReplacement(const size_t populationSize, const size_t sampleSize, size_t * subsample, gsl_rng * r) {
 
 
 	int n = sampleSize;

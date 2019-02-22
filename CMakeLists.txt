@@ -10,15 +10,28 @@ find_package(GSL REQUIRED)
 
 # link_directories("../vcpkg/packages/gsl_x86-windows/lib")
 
-add_executable(main 
+add_executable(concreteMain 
 	running.c
 	regressionLearner.c
 	U.c
 	concrete.c
 )
 
-target_link_libraries(main
-	sqlite3
+add_executable(randomMain 
+	running.c
+	regressionLearner.c
+	U.c
+	random.c
+)
+
+
+
+target_link_libraries(concreteMain
+	GSL::gsl
+	GSL::gslcblas
+)
+
+target_link_libraries(randomMain
 	GSL::gsl
 	GSL::gslcblas
 )
