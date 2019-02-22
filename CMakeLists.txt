@@ -11,6 +11,9 @@ find_package(GSL REQUIRED)
 # link_directories("../vcpkg/packages/gsl_x86-windows/lib")
 
 add_executable(main 
+	running.c
+	regressionLearner.c
+	U.c
 	concrete.c
 )
 
