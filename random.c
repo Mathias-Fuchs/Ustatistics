@@ -1,6 +1,4 @@
 
-
-
 /*
  *  calculates classification loss, and estimates the standard error by a U-statistic
  *  Copyright (C) 2013  Mathias Fuchs
@@ -28,23 +26,15 @@
 #include "U.h"
 #include <gsl/gsl_vector_double.h>
 #include <gsl/gsl_matrix.h>
-#include <gsl/gsl_math.h>
 #include <gsl/gsl_rng.h>
-#include <gsl/gsl_randist.h>
-#include <gsl/gsl_statistics.h>
-#include <gsl/gsl_blas.h>
-
 #include <assert.h>
-
-
-
-
 
 gsl_matrix * RandomData(size_t n, size_t  p, gsl_rng * r) {
 	gsl_matrix * data = gsl_matrix_alloc(n, p);
 	for (int i = 0; i < n; i++) {
 		for (int j = 0; j < p; j++) {
-			gsl_matrix_set(data, i, j, gsl_ran_ugaussian(r));
+			double t = gsl_rng_uniform(r);
+			gsl_matrix_set(data, i, j, t);
 		}
 	}
 	return data;
@@ -53,7 +43,7 @@ gsl_matrix * RandomData(size_t n, size_t  p, gsl_rng * r) {
 gsl_vector * RandomResponse(int n, gsl_rng * r) {
 	gsl_vector * res = gsl_vector_alloc(n);
 	for (int i = 0; i < n; i++) {
-		gsl_vector_set(res, i, gsl_ran_ugaussian(r));
+		gsl_vector_set(res, i, gsl_rng_uniform(r));
 	}
 	return res;
 }
@@ -90,7 +80,7 @@ int main(int argc, char ** argv) {
 
 	size_t n = 103;
 	size_t p = 3;
-	size_t B = 1e5; // number of resample in each iteration
+	size_t B = 4; // number of resample in each iteration
 	int seed = 1234; // random seed
 
 	gsl_rng * r = gsl_rng_alloc(gsl_rng_taus2);
@@ -100,13 +90,15 @@ int main(int argc, char ** argv) {
 	gsl_matrix* y = RandomResponse(n, r);
 
 	for (int g = 30; g < 51; g++) {
-	
-		workspaceInit(3);
-		double lpo = U(X, y, B, g + 1, r, &gamma);
-		double t2 = U(X, y, B, 2 * g + 2, r, &kernelForThetaSquared);
-		workspaceDel();
 
-		printf("learning set size: %i, leave-p-out estimator: %f, estimator for thetasquared: %f, estimator for its variance: %f\n", g, lpo, t2, gsl_pow_2(lpo) - t2);
+		workspaceInit(3);
+
+		double confIntLower, confIntUpper, Usquared, UsquaredLower, UsquaredUpper;
+		double lpo = U(X, y, B, g + 1, r, &gamma, &confIntLower, &confIntUpper, &Usquared, &UsquaredLower, &UsquaredUpper);
+		double t2 = U(X, y, B, 2 * g + 2, r, &kernelForThetaSquared, &confIntLower, &confIntUpper, &Usquared, &UsquaredLower, &UsquaredUpper);
+		workspaceDel();
+		double v = lpo * lpo - t2;
+		printf("learning set size: %i, leave-p-out estimator: %f, estimator for thetasquared: %f, estimator for its variance: %f\n", g, lpo, t2, v);
 	}
 
 	gsl_matrix_free(X);

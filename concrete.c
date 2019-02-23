@@ -28,59 +28,10 @@
 #include "U.h"
 #include <gsl/gsl_vector_double.h>
 #include <gsl/gsl_matrix.h>
-#include <gsl/gsl_math.h>
-#include <gsl/gsl_rng.h>
-#include <gsl/gsl_randist.h>
-#include <gsl/gsl_statistics.h>
-#include <gsl/gsl_blas.h>
 
 #include <assert.h>
 
 
-
-
-
-gsl_matrix * RandomData(size_t n, size_t  p, gsl_rng * r) {
-	gsl_matrix * data = gsl_matrix_alloc(n, p);
-	for (int i = 0; i < n; i++) {
-		for (int j = 0; j < p; j++) {
-			gsl_matrix_set(data, i, j, gsl_ran_ugaussian(r));
-		}
-	}
-	return data;
-}
-
-gsl_vector * RandomResponse(int n, gsl_rng * r) {
-	gsl_vector * res = gsl_vector_alloc(n);
-	for (int i = 0; i < n; i++) {
-		gsl_vector_set(res, i, gsl_ran_ugaussian(r));
-	}
-	return res;
-}
-
-void writeDoubleMatrix(const gsl_matrix * x) {
-	int n, p;
-	n = x->size1;
-	p = x->size2;
-	int i, j;
-	for (i = 0; i < n; i++) {
-		for (j = 0; j < p; j++) {
-			printf("%f ", (double)gsl_matrix_get(x, i, j));
-		}
-		printf("\n");
-	}
-}
-
-void writeDoubleVector(const gsl_vector * x) {
-	int n = x->size;
-	for (int i = 0; i < n; i++)
-		printf("%f ", gsl_vector_get(x, i));
-	printf("\n");
-}
-
-
-/* Gamma is  || betaHat Xtest - Ytest ||^2 = */
-/*   (Xtest * (Xlearn^t Xlearn)^(-1) *  Xlearn ^t * Ylearn - Ytest )^2 */
 
 
 

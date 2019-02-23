@@ -3,3 +3,4 @@ slnx.sqlite
 concrete
 concrete.o
 *~
+/.gitignore.swp

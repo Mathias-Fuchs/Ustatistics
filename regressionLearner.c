@@ -7,6 +7,17 @@
 #include <gsl/gsl_blas.h>
 #include <assert.h>
 
+
+#ifdef RELEASE
+
+#define HAVE_INLINE
+#undef GSL_RANGE_CHECK
+
+#endif
+
+/* Gamma is  || betaHat Xtest - Ytest ||^2 = */
+/*   (Xtest * (Xlearn^t Xlearn)^(-1) *  Xlearn ^t * Ylearn - Ytest )^2 */
+
 typedef struct {
 	gsl_matrix * ii;
 	// CC will hold results of Xlearn^T Xlearn
@@ -32,9 +43,6 @@ void workspaceDel() {
 	gsl_vector_free(ws.EE);
 	gsl_matrix_free(ws.ii);
 }
-
-
-
 
 static inline double meanSquareLoss(double y1, double y2) {
 	return gsl_pow_2(y1 - y2);
@@ -118,4 +126,3 @@ double kernelForThetaSquared(const gsl_matrix * data, const gsl_vector * respons
 
 	return gamma(data1, response1) * gamma(data2, response2);
 }
-
