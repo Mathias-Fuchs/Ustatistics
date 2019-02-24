@@ -5,15 +5,14 @@ This is the accompanying code to the paper http://www.tandfonline.com/doi/abs/10
 The underlying data, the two .dat files, contain the first three principal components of the concrete slump dataset (https://archive.ics.uci.edu/ml/datasets/Concrete+Slump+Test).
 The code makes use of super-fast linear regression learning, by implementing immediate inversion of symmetric 3-by-3 matrices in C.
 
-
 # Purpose
-The purpose of the paper is to illuminate the existence of a variance estimator of cross-validation.  In the paper, we explain why such a variance estimator exists if the learning sample size does not exceed half of the total sample size minus one. This repository contains an implementation of such a variance estimator.
-
+The purpose of the paper is to illuminate the existence of a variance estimator of cross-validation.
+In the paper, we explain why such a variance estimator exists if the learning sample size does not exceed half of the total sample size minus one. This repository contains an implementation of such a variance estimator.
 The sample size in the dataset is 103.
-
 So, the maximal sample size allowing for a variance estimator is 51.
 
-# Theoretical background
+# Background
+I am trying to explain what all this is about in a series of online diary entries at  http://www.mathiasfuchs.de/b2.html,  and subsequent entries.
 
 This repository contains code that re-samples a kernel of a U-statistic often enough to obtain a good approximation of the atactual value of the U-statistic.
 
@@ -38,9 +37,12 @@ The entire program then computes the estimated variance of the mean square loss 
 
 
 # Compilation
-requires presence of the gsl library. On debian-related systems, gsl is installed using
+In visual studio, just open the folder and use vcpkg to install the single dependency gsl.
+There are two executable targets defined in the cmake configuration file, one for the concrete dataset, and one for linear regression on random data.
 
-sudo apt-get install libgsl10-dev
+On debian-related systems, gsl is installed using
+
+sudo apt install libgsl-dev
 
 Then, execute the commands
 
@@ -48,10 +50,5 @@ make
 sudo make install
 
 and enjoy.
-
-Needs 3 command line arguments: the number of resample in each iteration (as high as possible, try at least 11e4 or 1e5, a random seed, and the learning set size (needs to be between 3 and 51.)
-
-Output: The leave (n-g)-out estimator, the estimator for Theta^2, and the variance estimator for the leave-p-out estimator.
-
 
 

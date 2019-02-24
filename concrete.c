@@ -28,7 +28,7 @@
 #include "U.h"
 #include <gsl/gsl_vector_double.h>
 #include <gsl/gsl_matrix.h>
-
+#include <gsl/gsl_cdf.h>
 #include <assert.h>
 
 
@@ -41,13 +41,9 @@ int main(int argc, char ** argv) {
 
 	size_t n = 103;
 	size_t p = 3;
-	int B = 1e5; // number of resample in each iteration
+	size_t B = 1e7; // number of resample in each iteration
 	int seed = 1234; // random seed
-	int g = 50; // learning set size
 
-
-
-	size_t Br = (size_t)B;
 	gsl_matrix * X = gsl_matrix_alloc(n, p);
 	FILE * f = fopen("slump.dat", "rb");
 
@@ -79,16 +75,30 @@ int main(int argc, char ** argv) {
 
 	for (int g = 30; g < 51; g++) {
 		workspaceInit(3);
-		double lpo = U(X, y, Br, g + 1, r, &gamma);
-		double t2 = U(X, y, Br, 2 * g + 2, r, &kernelForThetaSquared);
+
+		double confIntLower1, confIntUpper1, Usquared1, UsquaredLower1, UsquaredUpper1;
+		double confIntLower2, confIntUpper2, Usquared2, UsquaredLower2, UsquaredUpper2;
+
+		double lpo = U(X, y, B, g + 1, r, &gamma, &confIntLower1, &confIntUpper1, &Usquared1, &UsquaredLower1, &UsquaredUpper1);
+		double t2 = U(X, y, B, 2 * g + 2, r, &kernelForThetaSquared, &confIntLower2, &confIntUpper2, &Usquared2, &UsquaredLower2, &UsquaredUpper2);
 		workspaceDel();
+		printf("learning set size: %i\n", g);
+		printf("leave-p-out estimator with confidence interval for its exact computation: [%f %f %f]\n", confIntLower1, lpo, confIntUpper1);
+		printf("its square with confidence interval for its computation: [%f %f %f]\n", UsquaredLower1, Usquared1, UsquaredUpper1);
+		printf("computation uncertainty in lposquared %f\n", UsquaredUpper1 - UsquaredLower1);
+		printf("computation uncertainty in thetasquared: %f\n", confIntUpper2 - confIntLower2);
+		printf("Adjust the Bs by a factor of %f therefore.\n", (UsquaredUpper1 - UsquaredLower1) / (confIntUpper2 - confIntLower2) * (UsquaredUpper1 - UsquaredLower1) / (confIntUpper2 - confIntLower2));
+		printf("computation confidence interval for the variance estimator: [%f %f %f]\n", UsquaredLower1 - confIntUpper2, Usquared1 - t2, UsquaredUpper1 - confIntLower2);
+		printf("computation uncertainty in the variance estimator: %f\n", UsquaredUpper1 - confIntLower2 - (UsquaredLower1 - confIntUpper2));
+		double t = gsl_cdf_tdist_Pinv(1.0 - 0.05 / 2.0, (double)(n - 1));
+		double conservativeSd = sqrt(UsquaredUpper1 - confIntLower2);
+		printf("resulting conservative confidence interval for the supervised learning algorithm using the upper variance computation confidence interval:[%f %f %f]\n\n", lpo - t * conservativeSd, lpo, lpo + t * conservativeSd);
 
-
-		printf("learning set size: %i, leave-p-out estimator: %f, estimator for thetasquared: %f, estimator for its variance: %f\n", g, lpo, t2, gsl_pow_2(lpo) - t2);
+		
 	}
 	gsl_matrix_free(X);
 	gsl_vector_free(y);
-
+	gsl_rng_free(r);
 	return 0;
 }
 

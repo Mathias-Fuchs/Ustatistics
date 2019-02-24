@@ -5,7 +5,6 @@
 #include <gsl/gsl_randist.h>
 #include <gsl/gsl_cdf.h>
 #include <gsl/gsl_math.h>
-#include "running.h"
 #include <assert.h>
 
 
@@ -68,10 +67,8 @@ double U(
 	gsl_vector * predStorage = gsl_vector_alloc(B);
 
 	// will hold the indices of a subsample
-	size_t * indices = (size_t *)malloc(m * sizeof(size_t));
+	size_t * indices = malloc(m * sizeof(size_t));
 
-	// estimator for the square of the mean of the subsampling results, will be more accurate than just the square of the mean. See www.mathiasfuchs.de/b2.html
-	double G = 0.0;
 	for (int b = 0; b < B; b++) {
 		sampleWithoutReplacement(n, m, indices, r);
 		for (int i = 0; i < m; i++) {
@@ -80,18 +77,50 @@ double U(
 		}
 		double newval = kernel(subsample, subresponse);
 		gsl_vector_set(resamplingResults, b, newval);
-		if (b == 0) {
-			gsl_vector_set(cumSum, 0, newval);
-		} else { 
-			gsl_vector_set(cumSum, b, newval + gsl_vector_get(cumSum, b - 1));
-		}
-		if (b != 0) G += newval * gsl_vector_get(cumSum, b-1) / (double)B / (double) (B - 1) * 2.0;
 	}
+
+#ifdef codeToCheckCorrectness
+	// old code to check the sum of all products of distinct pairs and triples
+
+	double cumsum = 0, G = 0, GG = 0, GGG = 0, H = 0;
+	for (int i = 1; i < B; i++) {
+		cumsum += resamplingResults->data[i - 1]; // one needs to take the preceding value
+		GG += resamplingResults->data[i] * cumsum / (double)B / (double)(B - 1) * 2.0;
+	}
+
+	for (int i = 0; i < B - 1; i++) {
+		for (int j = i + 1; j < B; j++) {
+			GGG += gsl_vector_get(resamplingResults, i) * gsl_vector_get(resamplingResults, j) / (double)B / (double)(B - 1) * 2.0;
+		}
+	}
+
+	for (int i = 0; i < B - 2; i++) {
+		for (int j = i + 1; j < B - 1; j++) {
+			for (int k = j + 1; k < B; k++) {
+				H += 
+					resamplingResults->data[i] * resamplingResults->data[j] * resamplingResults->data[k];
+			}
+		}
+	}
+#endif
+
+	double* N = calloc(4 * B, sizeof(double));
+	for (int i = 0; i < B; i++) N[i + B * 0] = (i ? N[i - 1 + B * 0] : 0) + gsl_vector_get(resamplingResults, i);
+	for (int i = 1; i < B; i++) for (int j = 1; j < 4; j++) N[i + B * j] = gsl_vector_get(resamplingResults, i) * N[i - 1 + B * (j - 1)] + N[i - 1 + B * j];
+
+	double sumOfProductsOfDistinctPairs = N[B - 1 + B];
+	double sumOfProductsOfDistinctTriples = N[B - 1 + B * 2];
+	double sumOfProductsOfDistinctQuadruples = N[B - 1 + B * 3];
+
+	double rawSecondMoment = sumOfProductsOfDistinctPairs / (double)B / (double)(B - 1) * 2.0;
+	double rawThirdMoment = sumOfProductsOfDistinctTriples / (double)B / (double)(B - 1) / (double) (B - 2) * 6.0;
+	double rawFourthMoment = sumOfProductsOfDistinctQuadruples / (double)B / (double)(B - 1) / (double) (B-2) / (double) (B-3) * 24.0;
+	free(N);
+	
 	free(indices);
 	gsl_matrix_free(subsample);
 	gsl_vector_free(subresponse);
 
-	// double x = runningMean(resamplingResults, B);
 	double mean = gsl_stats_mean(
 		resamplingResults->data,
 		resamplingResults->stride,
@@ -110,29 +139,13 @@ double U(
 		);
 
 		// confint  is [x - t * sd/sqrt(n), x + t * sd/sqrt(n)]
-
-		// for now, we just do a really simple implementation of H
-		size_t* indicesH = malloc(4 * sizeof(size_t));
-		double H = 0.0;
-		int BH = 5e2;
-		for (int h = 0; h < BH; h++) {
-			sampleWithoutReplacement(B, 4, indicesH, r);
-			H +=
-				gsl_vector_get(resamplingResults, indicesH[0]) *
-				gsl_vector_get(resamplingResults, indicesH[1]) *
-				gsl_vector_get(resamplingResults, indicesH[2]) *
-				gsl_vector_get(resamplingResults, indicesH[3]) / (double) BH;
-		}
-		free(indicesH);
-
-		double K = G * G - H;
-
+		double K = rawSecondMoment * rawSecondMoment - rawFourthMoment;
 
 		*confIntLower = mean - t * reSampleSd / sqrt((double)B);
 		*confIntUpper = mean + t * reSampleSd / sqrt((double)B);
-		*Usquared = G;
-		*UsquaredLower = G - t * sqrt(K);
-		*UsquaredUpper = G + t * sqrt(K);
+		*Usquared = rawSecondMoment;
+		*UsquaredLower = rawSecondMoment - t * sqrt(K);
+		*UsquaredUpper = rawSecondMoment + t * sqrt(K);
 	}
 
 	gsl_vector_free(predStorage);
