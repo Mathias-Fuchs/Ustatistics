@@ -110,11 +110,29 @@ double U(
 		);
 
 		// confint  is [x - t * sd/sqrt(n), x + t * sd/sqrt(n)]
+
+		// for now, we just do a really simple implementation of H
+		size_t* indicesH = malloc(4 * sizeof(size_t));
+		double H = 0.0;
+		int BH = 5e2;
+		for (int h = 0; h < BH; h++) {
+			sampleWithoutReplacement(B, 4, indicesH, r);
+			H +=
+				gsl_vector_get(resamplingResults, indicesH[0]) *
+				gsl_vector_get(resamplingResults, indicesH[1]) *
+				gsl_vector_get(resamplingResults, indicesH[2]) *
+				gsl_vector_get(resamplingResults, indicesH[3]) / (double) BH;
+		}
+		free(indicesH);
+
+		double K = G * G - H;
+
+
 		*confIntLower = mean - t * reSampleSd / sqrt((double)B);
 		*confIntUpper = mean + t * reSampleSd / sqrt((double)B);
 		*Usquared = G;
-
-		// todo: implement the confidence interval for Usquared
+		*UsquaredLower = G - t * sqrt(K);
+		*UsquaredUpper = G + t * sqrt(K);
 	}
 
 	gsl_vector_free(predStorage);
