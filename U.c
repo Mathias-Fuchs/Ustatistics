@@ -1,4 +1,3 @@
-
 #include "U.h"
 #include <gsl/gsl_rstat.h>
 #include <gsl/gsl_statistics.h>
@@ -6,6 +5,7 @@
 #include <gsl/gsl_cdf.h>
 #include <gsl/gsl_math.h>
 #include <assert.h>
+#include "regressionLearner.h"
 
 
 static inline void sampleWithoutReplacement(const size_t populationSize, const size_t sampleSize, size_t * subsample, gsl_rng * r) {
@@ -97,7 +97,7 @@ double U(
 	for (int i = 0; i < B - 2; i++) {
 		for (int j = i + 1; j < B - 1; j++) {
 			for (int k = j + 1; k < B; k++) {
-				H += 
+				H +=
 					resamplingResults->data[i] * resamplingResults->data[j] * resamplingResults->data[k];
 			}
 		}
@@ -111,12 +111,13 @@ double U(
 	double sumOfProductsOfDistinctPairs = N[B - 1 + B];
 	double sumOfProductsOfDistinctTriples = N[B - 1 + B * 2];
 	double sumOfProductsOfDistinctQuadruples = N[B - 1 + B * 3];
+	free(N);
 
 	double rawSecondMoment = sumOfProductsOfDistinctPairs / (double)B / (double)(B - 1) * 2.0;
-	double rawThirdMoment = sumOfProductsOfDistinctTriples / (double)B / (double)(B - 1) / (double) (B - 2) * 6.0;
-	double rawFourthMoment = sumOfProductsOfDistinctQuadruples / (double)B / (double)(B - 1) / (double) (B-2) / (double) (B-3) * 24.0;
-	free(N);
-	
+	double rawThirdMoment = sumOfProductsOfDistinctTriples / (double)B / (double)(B - 1) / (double)(B - 2) * 6.0;
+	double rawFourthMoment = sumOfProductsOfDistinctQuadruples / (double)B / (double)(B - 1) / (double)(B - 2) / (double)(B - 3) * 24.0;
+
+
 	free(indices);
 	gsl_matrix_free(subsample);
 	gsl_vector_free(subresponse);
@@ -143,6 +144,12 @@ double U(
 
 		*confIntLower = mean - t * reSampleSd / sqrt((double)B);
 		*confIntUpper = mean + t * reSampleSd / sqrt((double)B);
+
+		double precision = mean / 1e3;
+		// we want t * reSampleSd / sqrt(B) == precision, so, 
+		int Brequired = (int) (t * t * reSampleSd * reSampleSd / precision / precision);
+		printf(stdout, "To achieve a relative precision of 1e-3, one would need %i iterations instead of currently %i.\n", Brequired, B);
+
 		*Usquared = rawSecondMoment;
 		*UsquaredLower = rawSecondMoment - t * sqrt(K);
 		*UsquaredUpper = rawSecondMoment + t * sqrt(K);
@@ -153,3 +160,37 @@ double U(
 	return(mean);
 }
 
+
+
+void analyzeDataset(const gsl_matrix* X, const gsl_vector* y,size_t B) {
+	int seed = 1234;
+	gsl_rng * r = gsl_rng_alloc(gsl_rng_taus2);
+	gsl_rng_set(r, seed);
+	size_t n = X->size1;
+	assert(X->size1 == y->size);
+	workspaceInit(3);
+	for (size_t g = (n - 2) / 4; g < (n - 2) / 2; g++) {
+
+		double confIntLower1, confIntUpper1, Usquared1, UsquaredLower1, UsquaredUpper1;
+		double confIntLower2, confIntUpper2, Usquared2, UsquaredLower2, UsquaredUpper2;
+
+		double lpo = U(X, y, B, g + 1, r, &gamma, &confIntLower1, &confIntUpper1, &Usquared1, &UsquaredLower1, &UsquaredUpper1);
+		double t2 = U(X, y, B, 2 * g + 2, r, &kernelForThetaSquared, &confIntLower2, &confIntUpper2, &Usquared2, &UsquaredLower2, &UsquaredUpper2);
+		workspaceDel();
+		printf("learning set size: %i\n", g);
+		printf("leave-p-out estimator with confidence interval for its exact computation:\n[%f %f %f]\n", confIntLower1, lpo, confIntUpper1);
+		printf("its square with confidence interval for its computation:\n[%f %f %f]\n", UsquaredLower1, Usquared1, UsquaredUpper1);
+		printf("computation uncertainty in lposquared %f\n", UsquaredUpper1 - UsquaredLower1);
+		printf("computation uncertainty in thetasquared: %f\n", confIntUpper2 - confIntLower2);
+		printf("Adjust the Bs by a factor of %f therefore.\n", (UsquaredUpper1 - UsquaredLower1) / (confIntUpper2 - confIntLower2) * (UsquaredUpper1 - UsquaredLower1) / (confIntUpper2 - confIntLower2));
+		printf("computation confidence interval for the variance estimator:\n[%f %f %f]\n", UsquaredLower1 - confIntUpper2, Usquared1 - t2, UsquaredUpper1 - confIntLower2);
+		printf("computation uncertainty in the variance estimator: %f\n", UsquaredUpper1 - confIntLower2 - (UsquaredLower1 - confIntUpper2));
+		double t = gsl_cdf_tdist_Pinv(1.0 - 0.05 / 2.0, (double)(n - 1));
+		double conservativeSd = sqrt(UsquaredUpper1 - confIntLower2);
+		printf("resulting conservative confidence interval for the supervised learning algorithm using the upper variance computation confidence interval:\n[%f %f %f]\n\n", lpo - t * conservativeSd, lpo, lpo + t * conservativeSd);
+
+
+	}
+	workspaceDel();
+	gsl_rng_free(r);
+}

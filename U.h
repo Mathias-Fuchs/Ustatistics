@@ -17,3 +17,4 @@ double U(
 	double* UsquaredLower,
 	double* UsquaredUpper);
 
+void analyzeDataset(const gsl_matrix* X, const gsl_vector* Y, size_t B);

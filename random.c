@@ -69,45 +69,16 @@ void writeDoubleVector(const gsl_vector * x) {
 }
 
 
-/* Gamma is  || betaHat Xtest - Ytest ||^2 = */
-/*   (Xtest * (Xlearn^t Xlearn)^(-1) *  Xlearn ^t * Ylearn - Ytest )^2 */
-
-
-
-
 int main(int argc, char ** argv) {
-
-
 	size_t n = 103;
 	size_t p = 3;
 	size_t B = 1e6; // number of resample in each iteration
-	int seed = 1234; // random seed
-
 	gsl_rng * r = gsl_rng_alloc(gsl_rng_taus2);
-	gsl_rng_set(r, seed);
-
+	gsl_rng_set(r, 1234);
 	gsl_matrix * X = RandomData(n, p, r);
 	gsl_matrix* y = RandomResponse(n, r);
-
-	for (int g = 30; g < 51; g++) {
-
-		workspaceInit(3);
-
-		double confIntLower1, confIntUpper1, Usquared1, UsquaredLower1, UsquaredUpper1;
-		double confIntLower2, confIntUpper2, Usquared2, UsquaredLower2, UsquaredUpper2;
-
-		double lpo = U(X, y, B, g + 1, r, &gamma, &confIntLower1, &confIntUpper1, &Usquared1, &UsquaredLower1, &UsquaredUpper1);
-		double t2 = U(X, y, B, 2 * g + 2, r, &kernelForThetaSquared, &confIntLower2, &confIntUpper2, &Usquared2, &UsquaredLower2, &UsquaredUpper2);
-		workspaceDel();
-		printf("learning set size: %i\n", g);
-		printf("leave-p-out estimator with confidence interval for its exact computation: [%f %f %f]\n", confIntLower1, lpo, confIntUpper1);
-		printf("its square with confidence interval for its computation: [%f %f %f]\n", UsquaredLower1, Usquared1, UsquaredUpper1);
-		printf("computation uncertainty in lposquared %f\n", UsquaredUpper1 - UsquaredLower1);
-		printf("computation uncertainty in thetasquared: %f\n", confIntUpper2 - confIntLower2);
-		printf("computation confidence interval for the variance estimator: [%f %f %f]\n", UsquaredLower1 - confIntUpper2, Usquared1 - t2, UsquaredUpper1 - confIntLower2);
-		printf("computation uncertainty in the variance estimator: %f\n\n\n", UsquaredUpper1 - confIntLower2 - (UsquaredLower1 - confIntUpper2));
-	}
-
+	gsl_rng_free(r);
+	analyzeDataset(X, y, B);
 	gsl_matrix_free(X);
 	gsl_vector_free(y);
 	return 0;
