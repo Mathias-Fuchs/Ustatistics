@@ -1,5 +1,6 @@
 #include "regressionLearner.h"
 
+#include <gsl/gsl_vector_double.h>
 #include <gsl/gsl_math.h>
 #include <gsl/gsl_rng.h>
 #include <gsl/gsl_randist.h>
@@ -87,16 +88,26 @@ static inline void inv2inPlace(const gsl_matrix * m, gsl_matrix* result) {
 /* Gamma is  || betaHat Xtest - Ytest ||^2 = */
 /*   (Xtest * (Xlearn^t Xlearn)^(-1) *  Xlearn ^t * Ylearn - Ytest )^2 */
 
-double gamma(const gsl_matrix * data, const gsl_vector * response) {
+double gamma(const gsl_matrix * data) {
+	int g = data->size1 - 1;
+	int p = data->size2 - 1;
 
-	//  printf("data has dimensions %d %d , response has length %d \n ", data -> size1, data -> size2, response -> size);
-	gsl_matrix_const_view Xlearnview = gsl_matrix_const_submatrix(data, 0, 0, data->size1 - 1, data->size2);
-	const gsl_matrix * Xlearn = &Xlearnview.matrix;
+	// learn data of sizes g * p, and g  * 1 resp
+	gsl_matrix_const_view learnX = gsl_matrix_const_submatrix(data, 0, 0, g, p);
+	gsl_vector_const_view allResponses = gsl_matrix_const_column(data, p);
+	gsl_vector_const_view learnRespVec = gsl_vector_const_subvector(&allResponses.vector, 0, g);
 
-	gsl_vector_const_view Xtestview = gsl_matrix_const_subrow(data, data->size1 - 1, 0, data->size2);
+	// test data of sizes 1 * p, and 1 * 1 resp
+	gsl_matrix_const_view testX = gsl_matrix_const_submatrix(data, g, 0, 1, p);
+	gsl_vector_const_view Xtestview = gsl_matrix_const_subrow(&testX.matrix, g, 0, p);
+
+	gsl_matrix_const_view testResp = gsl_matrix_const_submatrix(data, g, p, 1, 1);
+	double a0 = gsl_matrix_get(&testX.matrix, 0, 1); 
+	double a1 = gsl_matrix_get(&testX.matrix, 1, 1);
+	double a2 = gsl_matrix_get(&testX.matrix, 2, 1);
+
+	const gsl_matrix * Xlearn = &learnX.matrix;
 	const gsl_vector * Xtest = &Xtestview.vector;
-
-	gsl_vector_const_view ylearnview = gsl_vector_const_subvector(response, 0, response->size - 1);
 	const gsl_vector * ylearn = &ylearnview.vector;
 
 	//  writeDoubleVector(response);
