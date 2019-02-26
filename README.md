@@ -1,4 +1,40 @@
+
+# Overview
+The notion of U-statistic was introduced in a seminal paper by Wassiliy Hoeffding in 1948 and has matured to constitute one of the building blocks of modern statistics.
+
+The importance of the concept lies in the fact that many interesting statistics turn out to be part of the class of U-statistics in disguise. In particular, the sample mean and variance, but also the (complete) cross-validation estimator of the error in supervised machine learning.
+
+This library contains a handful of functions for computation of U-statistics, and in particular contains code for the computation confidence interval.
+More precisely, one can only approximate a U-statistic due to the high number of terms in its definition. Therefore, it is desirable to know if the approximation is reliable, and that can be done with a confidence interval.
+
+Its meaning is that in at least 95% of all cases the computed confidence interval will contain the true value of the U-statistic.
+
+This confidence interval is not to be confused with the confidence interval for &theta;, the estimation target of the U-statistic itself.
+For instance, if the U-statistic is the sample mean, then the &theta; is the population mean, and the confidence interval is the usual confidence interval for the mean, as in, for instance, the "t.test" function in R.)
+
+This library is capable of computing both confidence intervals.
+
+The core function is the function U defined in the header file U.h.
+It expects the kernel of the U-statistic as a callback function.
+
+The library builds under Visual Studio in Windows, and under Debian/Ubuntu. The only requirement is the gnu scientific library. Under Windows, it can easily be installed using the vcpkg library.
+
+An important example is the concrete dataset which was used as the data example in the paper https://epub.ub.uni-muenchen.de/27656/7/TR.pdf (published as https://www.tandfonline.com/doi/abs/10.1080/15598608.2016.1158675)
+
+
+Pull request with more examples for U-statistics are welcome!
+
+# Importance
+One of the most important applications is to supervised learning cross-validation. In fact, the following papers explain in which sense the cross-validated error rate is a U-statistic.
+Therefore, a confidence interval for the machine learning error rate can be obtained by a confidence interval for the 
+
+- https://epub.ub.uni-muenchen.de/17654/
+- https://epub.ub.uni-muenchen.de/27656/7/TR.pdf published as https://www.tandfonline.com/doi/abs/10.1080/15598608.2016.1158675
+- http://www3.stat.sinica.edu.tw/sstest/j24n3/j24n34/j24n34.html
+
 # Concrete
+
+An example dataset is the concrete slump dataset http://archive.ics.uci.edu/ml/datasets/concrete+slump+test
 
 This is the accompanying code to the paper http://www.tandfonline.com/doi/abs/10.1080/15598608.2016.1158675, about variance estimation of a U-statistic for the learning performance on the concrete dataset of the UCI Machine Learning Repository.
 

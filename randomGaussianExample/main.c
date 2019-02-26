@@ -1,6 +1,3 @@
-
-
-
 /*
  *  calculates classification loss, and estimates the standard error by a U-statistic
  *  Copyright (C) 2013  Mathias Fuchs
@@ -20,33 +17,45 @@
  */
 
 
+#include <time.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include "regressionLearner.h"
 #include "U.h"
 #include <gsl/gsl_vector_double.h>
 #include <gsl/gsl_matrix.h>
+#include <gsl/gsl_rng.h>
+#include <assert.h>
 
+gsl_matrix * RandomData(size_t n, size_t  p, gsl_rng * r) {
+	gsl_matrix * data = gsl_matrix_alloc(n, p);
+	for (int i = 0; i < n; i++) {
+		for (int j = 0; j < p; j++) {
+			double t = gsl_rng_uniform(r);
+			gsl_matrix_set(data, i, j, t);
+		}
+	}
+	return data;
+}
+
+gsl_vector * RandomResponse(int n, gsl_rng * r) {
+	gsl_vector * res = gsl_vector_alloc(n);
+	for (int i = 0; i < n; i++) {
+		gsl_vector_set(res, i, gsl_rng_uniform(r));
+	}
+	return res;
+}
 
 int main(int argc, char ** argv) {
-
-	size_t B = 1e5; // number of resamples in each iteration
-
-	FILE * f = fopen("slump.dat", "rb");
-	if (!f) fprintf(stderr, "input file not found!\n");
-	gsl_matrix * X = gsl_matrix_alloc(103, 3);
-	int h = gsl_matrix_fscanf(f, X);
-	fclose(f);
-	f = fopen("slumpResponse.dat", "rb");
-	if (!f) fprintf(stderr, "response input file not found!\n");
-	gsl_matrix * dummy = gsl_matrix_alloc(1, 103);
-	gsl_matrix_fscanf(f, dummy);
-	fclose(f);
-	gsl_vector * y = gsl_vector_alloc(103);
-	for (int i = 0; i < 103; i++) 	gsl_vector_set(y, i, gsl_matrix_get(dummy, 0, i));
-	gsl_matrix_free(dummy);
-
+	size_t n = 103;
+	size_t p = 3;
+	size_t B = 1e4; // number of resample in each iteration
+	gsl_rng * r = gsl_rng_alloc(gsl_rng_taus2);
+	gsl_rng_set(r, 1234);
+	gsl_matrix * X = RandomData(n, p, r);
+	gsl_matrix* y = RandomResponse(n, r);
+	gsl_rng_free(r);
 	analyzeDataset(X, y, B);
-
 	gsl_matrix_free(X);
 	gsl_vector_free(y);
 	return 0;

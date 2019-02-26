@@ -9,8 +9,6 @@
 
 
 static inline void sampleWithoutReplacement(const size_t populationSize, const size_t sampleSize, size_t * subsample, gsl_rng * r) {
-
-
 	int n = sampleSize;
 	int N = populationSize;
 
@@ -148,7 +146,7 @@ double U(
 		double precision = mean / 1e3;
 		// we want t * reSampleSd / sqrt(B) == precision, so, 
 		int Brequired = (int) (t * t * reSampleSd * reSampleSd / precision / precision);
-		printf(stdout, "To achieve a relative precision of 1e-3, one would need %i iterations instead of currently %i.\n", Brequired, B);
+		fprintf(stdout, "To achieve a relative precision of 1e-3, one would need %i iterations instead of currently %i.\n", Brequired, B);
 
 		*Usquared = rawSecondMoment;
 		*UsquaredLower = rawSecondMoment - t * sqrt(K);
@@ -170,13 +168,10 @@ void analyzeDataset(const gsl_matrix* X, const gsl_vector* y,size_t B) {
 	assert(X->size1 == y->size);
 	workspaceInit(3);
 	for (size_t g = (n - 2) / 4; g < (n - 2) / 2; g++) {
-
 		double confIntLower1, confIntUpper1, Usquared1, UsquaredLower1, UsquaredUpper1;
 		double confIntLower2, confIntUpper2, Usquared2, UsquaredLower2, UsquaredUpper2;
-
 		double lpo = U(X, y, B, g + 1, r, &gamma, &confIntLower1, &confIntUpper1, &Usquared1, &UsquaredLower1, &UsquaredUpper1);
 		double t2 = U(X, y, B, 2 * g + 2, r, &kernelForThetaSquared, &confIntLower2, &confIntUpper2, &Usquared2, &UsquaredLower2, &UsquaredUpper2);
-		workspaceDel();
 		printf("learning set size: %i\n", g);
 		printf("leave-p-out estimator with confidence interval for its exact computation:\n[%f %f %f]\n", confIntLower1, lpo, confIntUpper1);
 		printf("its square with confidence interval for its computation:\n[%f %f %f]\n", UsquaredLower1, Usquared1, UsquaredUpper1);
@@ -188,8 +183,6 @@ void analyzeDataset(const gsl_matrix* X, const gsl_vector* y,size_t B) {
 		double t = gsl_cdf_tdist_Pinv(1.0 - 0.05 / 2.0, (double)(n - 1));
 		double conservativeSd = sqrt(UsquaredUpper1 - confIntLower2);
 		printf("resulting conservative confidence interval for the supervised learning algorithm using the upper variance computation confidence interval:\n[%f %f %f]\n\n", lpo - t * conservativeSd, lpo, lpo + t * conservativeSd);
-
-
 	}
 	workspaceDel();
 	gsl_rng_free(r);

@@ -1,29 +1,27 @@
 ﻿cmake_minimum_required (VERSION 3.0.2)
-project (test C)
+project (Ustatistics C)
+
+if ("${CMAKE_SOURCE_DIR}" STREQUAL "${CMAKE_BINARY_DIR}")
+  message(SEND_ERROR "In-source builds are not allowed.")
+endif ()
+set(CMAKE_VERBOSE_MAKEFILE ON)
+set(CMAKE_COLOR_MAKEFILE   ON)
+
+# Remove 'lib' prefix for shared libraries on Windows
+if (WIN32)
+  set(CMAKE_SHARED_LIBRARY_PREFIX "")
+endif ()
 
 find_package(GSL REQUIRED)
 
-add_executable(concreteMain 
-	regressionLearner.c
-	U.c
-	concrete.c
-)
+# ---
+# sub-projects.
+# core Ustatistics component; builds a static library.
+add_subdirectory(core)
 
-add_executable(randomMain 
-	regressionLearner.c
-	U.c
-	random.c
-)
+# example executable containing the concrete dataset
+add_subdirectory(concreteDatasetExample)
 
-target_link_libraries(concreteMain
-	GSL::gsl
-	GSL::gslcblas
-)
+# example executable containing a demo app that computes U-statistics on random Gaussian data
+add_subdirectory(randomGaussianExample)
 
-target_link_libraries(randomMain
-	GSL::gsl
-	GSL::gslcblas
-)
-
-configure_file(${CMAKE_CURRENT_SOURCE_DIR}/slump.dat  ${CMAKE_CURRENT_BINARY_DIR}/slump.dat COPYONLY)
-configure_file(${CMAKE_CURRENT_SOURCE_DIR}/slumpResponse.dat  ${CMAKE_CURRENT_BINARY_DIR}/slumpResponse.dat COPYONLY)

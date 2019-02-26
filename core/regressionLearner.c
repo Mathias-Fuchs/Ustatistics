@@ -15,8 +15,6 @@
 
 #endif
 
-/* Gamma is  || betaHat Xtest - Ytest ||^2 = */
-/*   (Xtest * (Xlearn^t Xlearn)^(-1) *  Xlearn ^t * Ylearn - Ytest )^2 */
 
 typedef struct {
 	gsl_matrix * ii;
@@ -28,6 +26,12 @@ typedef struct {
 	gsl_vector * EE;
 } regressionLearnerWorkspace;
 
+// static gsl_matrix* ii;
+// static gsl_matrix* CC;
+// static gsl_vector* DD;
+// static gsl_vector* EE;
+
+
 static regressionLearnerWorkspace ws;
 
 void workspaceInit(size_t p) {
@@ -35,6 +39,12 @@ void workspaceInit(size_t p) {
 	ws.DD = gsl_vector_alloc(p);
 	ws.EE = gsl_vector_alloc(p);
 	ws.ii = gsl_matrix_alloc(p, p);
+
+	// CC = gsl_matrix_alloc(p, p);
+	// DD = gsl_vector_alloc(p);
+	// EE = gsl_vector_alloc(p);
+	// ii = gsl_matrix_alloc(p, p);
+
 }
 
 void workspaceDel() {
@@ -72,6 +82,10 @@ static inline void inv2inPlace(const gsl_matrix * m, gsl_matrix* result) {
 	gsl_matrix_scale(result, 1 / D);
 	return;
 }
+
+
+/* Gamma is  || betaHat Xtest - Ytest ||^2 = */
+/*   (Xtest * (Xlearn^t Xlearn)^(-1) *  Xlearn ^t * Ylearn - Ytest )^2 */
 
 double gamma(const gsl_matrix * data, const gsl_vector * response) {
 
