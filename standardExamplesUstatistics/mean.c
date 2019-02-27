@@ -2,7 +2,7 @@
 #include <gsl/gsl_matrix.h>
 
 // the kernel of the U-statistics for the mean is just the identity function on a one-times-one-matrix
-double kern(gsl_matrix* data) {
+double kern(const gsl_matrix* data) {
 	return gsl_matrix_get(data, 0, 0);
 }
 
