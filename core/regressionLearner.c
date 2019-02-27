@@ -75,6 +75,7 @@ static inline void inv2inPlace(const gsl_matrix * m, gsl_matrix* result) {
 /* Gamma is  || betaHat Xtest - Ytest ||^2 = */
 /*   (Xtest * (Xlearn^t Xlearn)^(-1) *  Xlearn ^t * Ylearn - Ytest )^2 */
 
+// remains to make symmetric
 double kernelTheta(const gsl_matrix * data) {
 	int g = data->size1 - 1;
 	int p = data->size2 - 1;
@@ -107,6 +108,7 @@ double kernelTheta(const gsl_matrix * data) {
 	return meanSquareLoss(ypredicted, testY);
 }
 
+// remains to make symmetric
 double kernelForThetaSquared(const gsl_matrix * data) {
 	assert(data->size1 % 2 == 0);
 
