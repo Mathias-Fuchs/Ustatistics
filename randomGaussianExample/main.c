@@ -16,11 +16,10 @@
  *  along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-
 #include <time.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include "regressionLearner.h"
+#include "supervisedLearning.h"
 #include "U.h"
 #include <gsl/gsl_vector_double.h>
 #include <gsl/gsl_matrix.h>
@@ -49,7 +48,7 @@ gsl_vector * RandomResponse(int n, gsl_rng * r) {
 int main(int argc, char ** argv) {
 	size_t n = 103;
 	size_t p = 3;
-	size_t B = 1e4; // number of resample in each iteration
+	size_t B = 1e4; // number of resamples in each iteration
 	gsl_rng * r = gsl_rng_alloc(gsl_rng_taus2);
 	gsl_rng_set(r, 1234);
 	gsl_matrix * X = RandomData(n, p, r);
@@ -60,4 +59,3 @@ int main(int argc, char ** argv) {
 	gsl_vector_free(y);
 	return 0;
 }
-

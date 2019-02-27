@@ -85,7 +85,7 @@ double gamma(const gsl_matrix * data) {
 
 	// test data of sizes 1 * p, and 1 * 1 resp
 	gsl_vector_const_view testX = gsl_matrix_const_subrow(data, g, 0, p);
-	const double testY = gsl_matrix_get(data, g + 1, p + 1);
+	const double testY = gsl_matrix_get(data, g, p);
 
 	gsl_blas_dgemm(CblasTrans, CblasNoTrans, 1.0, &learnX.matrix, &learnX.matrix, 0.0, ws.CC);
 	gsl_blas_dgemv(CblasTrans, 1.0, &learnX.matrix, &learnY.vector, 0.0, ws.DD);
@@ -107,18 +107,11 @@ double gamma(const gsl_matrix * data) {
 	return meanSquareLoss(ypredicted, testY);
 }
 
-double kernelForThetaSquared(const gsl_matrix * data, const gsl_vector * response) {
-	gsl_matrix_const_view data1view = gsl_matrix_const_submatrix(data, 0, 0, data->size1 / 2, data->size2);
-	const gsl_matrix * data1 = &data1view.matrix;
+double kernelForThetaSquared(const gsl_matrix * data) {
+	assert(data->size1 % 2 == 0);
 
-	gsl_matrix_const_view data2view = gsl_matrix_const_submatrix(data, data->size1 / 2, 0, data->size1 / 2, data->size2);
-	const gsl_matrix * data2 = &data2view.matrix;
-
-	gsl_vector_const_view response1view = gsl_vector_const_subvector(response, 0, response->size / 2);
-	const gsl_vector * response1 = &response1view.vector;
-
-	gsl_vector_const_view response2view = gsl_vector_const_subvector(response, response->size / 2, response->size / 2);
-	const gsl_vector * response2 = &response2view.vector;
-
-	return gamma(data1, response1) * gamma(data2, response2);
+	// the first half of the rows gets fed into the first gamma, and the second into the other
+	gsl_matrix_const_view data1 = gsl_matrix_const_submatrix(data, 0, 0, data->size1 / 2, data->size2);
+	gsl_matrix_const_view data2 = gsl_matrix_const_submatrix(data, data->size1 / 2, 0, data->size1 / 2, data->size2);
+	return gamma(&data1.matrix) * gamma(&data2.matrix);
 }

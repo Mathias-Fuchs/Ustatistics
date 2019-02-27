@@ -96,7 +96,7 @@ double U(
 		if (confIntLower) *confIntLower = mean - t * reSampleSd / sqrt((double)B);
 		if (confIntUpper) *confIntUpper = mean + t * reSampleSd / sqrt((double)B);
 		double precision = mean / 1e2;
-		// we want t * reSampleSd / sqrt(B) == precision, so, by a standard sample size calculation,
+		// we want 2 * t * reSampleSd / sqrt(B) == precision, so, by a standard sample size calculation,
 		float Brequired = (float)(t * t * reSampleSd * reSampleSd / precision / precision);
 
 		fprintf(stdout, "To achieve a relative precision of 1e-2, one would need %i iterations instead of currently %i,\n", (int)Brequired, B);
