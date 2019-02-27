@@ -47,6 +47,25 @@ typedef struct {
 } rr;
 
 
+static rr binomialCoefficient(size_t n, size_t k) {
+	rr b;
+	if (k == 0) {
+		b.i = 1; b.isInfty = 0; return b;
+	}
+	if (k == 1) {
+		b.i = n; b.isInfty = 0; return b;
+	}
+	rr o = binomialCoefficient(n - 1, k - 1);
+	if (o.isInfty || o.i > INT_MAX / n * k) {
+		b.isInfty = 1; return b;
+	}
+	b.i = o.i * n / k;
+	b.isInfty = 0;
+	return b;
+}
+
+
+
 static rr drawWithoutReplacementInOrder(size_t n, size_t k) {
 	rr b;
 	if (k == 0) {
@@ -113,22 +132,7 @@ double U(
 			}
 			double newval = kernel(subsample);
 			gsl_vector_set(resamplingResults, b++, newval);
-
-	if (nrDraws.isInfty == 0 && nrDraws.i < 1e6) {
-
-		// calculate the U-statistic exactly
-		   // note that we do not assume the kernel is symmetric.
-		gsl_combination* cmb = gsl_combination_calloc(n, m);
-		int b = 0;
-		do {
-		  for (size_t i = 0; i < (unsigned int) m; i++) {
-				for (size_t j = 0; j < d; j++) gsl_matrix_set(subsample, i, j, gsl_matrix_get(data, gsl_combination_data(cmb)[i], j));
-			}
-			double newval = kernel(subsample);
-			gsl_vector_set(resamplingResults, b++, newval);
-
 		} while (gsl_combination_next(cmb) == GSL_SUCCESS);
-
 		gsl_combination_free(cmb);
 	}
 	else {
