@@ -6,6 +6,8 @@
 #include <gsl/gsl_math.h>
 #include <gsl/gsl_combination.h>
 #include <assert.h>
+#include <limits.h>
+
 
 static inline void sampleWithoutReplacement(const size_t populationSize, const size_t sampleSize, size_t * subsample, gsl_rng * r) {
 	int n = sampleSize;
@@ -46,27 +48,28 @@ static unsigned long long int binomialCoefficient(size_t n, size_t k) {
 	return (int)n * binomialCoefficient(n - 1, k - 1) / (int)k;
 }
 
-static unsigned long long int drawWithoutReplacementInOrder(size_t n, size_t k) {
-	if (k == 0) return 1;
-	if (k == 1) return n;
-	return (int)n * drawWithoutReplacementInOrder(n - 1, k - 1);
-}
 
-static void KSubset(int *a, int n, int *s, int sindex, int index, int k) {
+typedef struct {
+	unsigned int i;
+	int isInfty;
+} rr;
 
-	if (index > n)
-		return;
 
+static rr drawWithoutReplacementInOrder(size_t n, size_t k) {
+	rr b;
 	if (k == 0) {
-		for (int i = 0; i < sindex; i++)
-			printf(" %d ", s[i]);
-		printf("\n");
-		return;
+		b.i = 1; b.isInfty = 0; return b;
 	}
-
-	s[sindex] = a[index];
-	KSubset(a, n, s, sindex + 1, index + 1, k - 1);
-	KSubset(a, n, s, sindex, index + 1, k);
+	if (k == 1) {
+		b.i = n; b.isInfty = 0; return b;
+	}
+	rr o = drawWithoutReplacementInOrder(n - 1, k - 1);
+	if (o.isInfty || o.i > INT_MAX / n) {
+		b.isInfty = 1; return b;
+	}
+	b.i = o.i * n;
+	b.isInfty = 0;
+	return b;
 }
 
 
@@ -87,25 +90,26 @@ double U(
 	double* Usquared,
 	double* UsquaredLower,
 	double* UsquaredUpper) {
+
+
+	
 	size_t n = data->size1;
 	size_t d = data->size2;
-
 
 	gsl_matrix * subsample = gsl_matrix_alloc(m, d);
 	gsl_vector * resamplingResults;
 
 	// decide if we can generate all subsets
-	long long int nrDraws = drawWithoutReplacementInOrder(n, m);
+	rr nrDraws = drawWithoutReplacementInOrder(n, m);
 
-
-	if (nrDraws < 1e6) {
-		gsl_vector * resamplingResults = gsl_vector_alloc(nrDraws);
+	if (nrDraws.isInfty == 0 && nrDraws.i < 1e6) {
+		resamplingResults = gsl_vector_alloc(nrDraws.i);
 	}
 	else {
-		gsl_vector * resamplingResults = gsl_vector_alloc(B);
+		resamplingResults = gsl_vector_alloc(B);
 	}
 
-	if (nrDraws < 1e6) {
+	if (nrDraws.isInfty == 0 && nrDraws.i < 1e6) {
 
 		// calculate the U-statistic exactly
 		   // note that we do not assume the kernel is symmetric.
@@ -139,6 +143,17 @@ double U(
 		resamplingResults->stride,
 		resamplingResults->size
 	);
+
+	if (nrDraws.isInfty == 0 && nrDraws.i < 1e6) {
+		fprintf(stdout, "Have calculated the exact U-statistic and its square.");
+		if (confIntLower) *confIntLower = mean;
+		if (confIntUpper) *confIntUpper = mean;
+		if (Usquared) *Usquared = mean * mean;
+		if (UsquaredLower) *UsquaredLower = *Usquared;
+		if (UsquaredUpper) *UsquaredUpper = *Usquared;
+		return mean;
+	}
+
 
 	if (confIntLower || confIntUpper || Usquared) {
 		double reSampleSd = gsl_stats_sd_m(
@@ -209,5 +224,3 @@ double U(
 	gsl_vector_free(resamplingResults);
 	return(mean);
 }
-
-
