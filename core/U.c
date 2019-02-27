@@ -4,9 +4,8 @@
 #include <gsl/gsl_randist.h>
 #include <gsl/gsl_cdf.h>
 #include <gsl/gsl_math.h>
+#include <gsl/gsl_combination.h>
 #include <assert.h>
-#include "regressionLearner.h"
-
 
 static inline void sampleWithoutReplacement(const size_t populationSize, const size_t sampleSize, size_t * subsample, gsl_rng * r) {
 	int n = sampleSize;
@@ -40,6 +39,37 @@ static inline void sampleWithoutReplacement(const size_t populationSize, const s
 	}
 }
 
+static unsigned long long int binomialCoefficient(size_t n, size_t k) {
+	if (k == 0) return 1;
+	if (k == 1) return n;
+	if (k > n / 2) return binomialCoefficient(n, n - k);
+	return (int)n * binomialCoefficient(n - 1, k - 1) / (int)k;
+}
+
+static unsigned long long int drawWithoutReplacementInOrder(size_t n, size_t k) {
+	if (k == 0) return 1;
+	if (k == 1) return n;
+	return (int)n * drawWithoutReplacementInOrder(n - 1, k - 1);
+}
+
+static void KSubset(int *a, int n, int *s, int sindex, int index, int k) {
+
+	if (index > n)
+		return;
+
+	if (k == 0) {
+		for (int i = 0; i < sindex; i++)
+			printf(" %d ", s[i]);
+		printf("\n");
+		return;
+	}
+
+	s[sindex] = a[index];
+	KSubset(a, n, s, sindex + 1, index + 1, k - 1);
+	KSubset(a, n, s, sindex, index + 1, k);
+}
+
+
 
 /* computes a U-statistic of degree m by resampling B times */
 // compute two confidence intervals: one to express the certainty about the approximation of the true U-statistic by  a finite sample,
@@ -57,25 +87,53 @@ double U(
 	double* Usquared,
 	double* UsquaredLower,
 	double* UsquaredUpper) {
-	int n = data->size1;
-	int d = data->size2;
+	size_t n = data->size1;
+	size_t d = data->size2;
 
-	gsl_vector * resamplingResults = gsl_vector_alloc(B);
+
 	gsl_matrix * subsample = gsl_matrix_alloc(m, d);
-	gsl_vector * predStorage = gsl_vector_alloc(B);
+	gsl_vector * resamplingResults;
 
-	// will hold the indices of a subsample
-	size_t * indices = malloc(m * sizeof(size_t));
+	// decide if we can generate all subsets
+	long long int nrDraws = drawWithoutReplacementInOrder(n, m);
 
-	for (size_t b = 0; b < B; b++) {
-		sampleWithoutReplacement(n, m, indices, r);
-		for (int i = 0; i < m; i++) {
-			for (int j = 0; j < d; j++) gsl_matrix_set(subsample, i, j, gsl_matrix_get(data, indices[i], j));
-		}
-		double newval = kernel(subsample);
-		gsl_vector_set(resamplingResults, b, newval);
+
+	if (nrDraws < 1e6) {
+		gsl_vector * resamplingResults = gsl_vector_alloc(nrDraws);
+	}
+	else {
+		gsl_vector * resamplingResults = gsl_vector_alloc(B);
 	}
 
+	if (nrDraws < 1e6) {
+
+		// calculate the U-statistic exactly
+		   // note that we do not assume the kernel is symmetric.
+		gsl_combination* cmb = gsl_combination_calloc(n, m);
+		int b = 0;
+		do {
+			for (int i = 0; i < m; i++) {
+				for (int j = 0; j < d; j++) gsl_matrix_set(subsample, i, j, gsl_matrix_get(data, gsl_combination_data(cmb)[i], j));
+			}
+			double newval = kernel(subsample);
+			gsl_vector_set(resamplingResults, b++, newval);
+
+		} while (gsl_combination_next(cmb) == GSL_SUCCESS);
+
+		gsl_combination_free(cmb);
+	}
+	else {
+		size_t * indices = malloc(m * sizeof(size_t));
+		for (size_t b = 0; b < B; b++) {
+			sampleWithoutReplacement(n, m, indices, r);
+			for (int i = 0; i < m; i++) {
+				for (int j = 0; j < d; j++) gsl_matrix_set(subsample, i, j, gsl_matrix_get(data, indices[i], j));
+			}
+			double newval = kernel(subsample);
+			gsl_vector_set(resamplingResults, b, newval);
+		}
+		free(indices);
+	}
 	double mean = gsl_stats_mean(
 		resamplingResults->data,
 		resamplingResults->stride,
@@ -143,13 +201,11 @@ double U(
 			double K = EstimatedSquareOfMean * EstimatedSquareOfMean - EstimatedFourthPowerOfMean;
 			*Usquared = EstimatedSquareOfMean;
 			// note that we don't need to divide K by B
-			if (UsquaredLower) *UsquaredLower = EstimatedSquareOfMean - t * sqrt(K); 
+			if (UsquaredLower) *UsquaredLower = EstimatedSquareOfMean - t * sqrt(K);
 			if (UsquaredUpper) *UsquaredUpper = EstimatedSquareOfMean + t * sqrt(K);
 		}
 	}
-	free(indices);
 	gsl_matrix_free(subsample);
-	gsl_vector_free(predStorage);
 	gsl_vector_free(resamplingResults);
 	return(mean);
 }
