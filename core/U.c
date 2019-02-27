@@ -48,24 +48,21 @@ static inline void sampleWithoutReplacement(const size_t populationSize, const s
 
 double U(
 	const gsl_matrix * data,
-	const gsl_vector * response,
 	const size_t B,
 	const int m,
 	gsl_rng * r,
-	double(*kernel)(const gsl_matrix *, const gsl_vector *),
+	double(*kernel)(const gsl_matrix *),
 	double* confIntLower,
 	double* confIntUpper,
 	double* Usquared,
 	double* UsquaredLower,
 	double* UsquaredUpper) {
 	int n = data->size1;
-	int p = data->size2;
-	assert(response->size == n);
+	int d = data->size2;
 
 	gsl_vector * resamplingResults = gsl_vector_alloc(B);
 	gsl_vector * cumSum = gsl_vector_alloc(B);
-	gsl_matrix * subsample = gsl_matrix_alloc(m, p);
-	gsl_vector * subresponse = gsl_vector_alloc(m);
+	gsl_matrix * subsample = gsl_matrix_alloc(m, d);
 	gsl_vector * predStorage = gsl_vector_alloc(B);
 
 	// will hold the indices of a subsample
@@ -74,10 +71,9 @@ double U(
 	for (int b = 0; b < B; b++) {
 		sampleWithoutReplacement(n, m, indices, r);
 		for (int i = 0; i < m; i++) {
-			gsl_vector_set(subresponse, i, gsl_vector_get(response, indices[i]));
-			for (int j = 0; j < p; j++) gsl_matrix_set(subsample, i, j, gsl_matrix_get(data, indices[i], j));
+			for (int j = 0; j < d; j++) gsl_matrix_set(subsample, i, j, gsl_matrix_get(data, indices[i], j));
 		}
-		double newval = kernel(subsample, subresponse);
+		double newval = kernel(subsample);
 		gsl_vector_set(resamplingResults, b, newval);
 	}
 
@@ -86,8 +82,6 @@ double U(
 		resamplingResults->stride,
 		resamplingResults->size
 	);
-
-
 
 	if (confIntLower || confIntUpper || Usquared) {
 		double reSampleSd = gsl_stats_sd_m(
@@ -156,38 +150,9 @@ double U(
 	}
 	free(indices);
 	gsl_matrix_free(subsample);
-	gsl_vector_free(subresponse);
 	gsl_vector_free(predStorage);
 	gsl_vector_free(resamplingResults);
 	return(mean);
 }
 
 
-
-void analyzeDataset(const gsl_matrix* X, const gsl_vector* y, size_t B) {
-	int seed = 1234;
-	gsl_rng * r = gsl_rng_alloc(gsl_rng_taus2);
-	gsl_rng_set(r, seed);
-	size_t n = X->size1;
-	assert(X->size1 == y->size);
-	workspaceInit(3);
-	for (size_t g = (n - 2) / 4; g < (n - 2) / 2; g++) {
-		double confIntLower1, confIntUpper1, Usquared1, UsquaredLower1, UsquaredUpper1;
-		double confIntLower2, confIntUpper2;
-		double lpo = U(X, y, B, g + 1, r, &gamma, &confIntLower1, &confIntUpper1, &Usquared1, &UsquaredLower1, &UsquaredUpper1);
-		double t2 = U(X, y, B, 2 * g + 2, r, &kernelForThetaSquared, &confIntLower2, &confIntUpper2, NULL, NULL, NULL);
-		printf("Learning set size: %i\n", g);
-		printf("Leave-p-out estimator with confidence interval for its exact computation:\n[%f %f %f]\n", confIntLower1, lpo, confIntUpper1);
-		printf("Its square with confidence interval for its computation:\n[%f %f %f]\n", UsquaredLower1, Usquared1, UsquaredUpper1);
-		printf("Computation uncertainty in lposquared %f\n", UsquaredUpper1 - UsquaredLower1);
-		printf("Computation uncertainty in thetasquared: %f\n", confIntUpper2 - confIntLower2);
-		printf("Adjust the Bs by a factor of %f therefore.\n", (UsquaredUpper1 - UsquaredLower1) / (confIntUpper2 - confIntLower2) * (UsquaredUpper1 - UsquaredLower1) / (confIntUpper2 - confIntLower2));
-		printf("Computation confidence interval for the variance estimator:\n[%f %f %f]\n", UsquaredLower1 - confIntUpper2, Usquared1 - t2, UsquaredUpper1 - confIntLower2);
-		printf("Computation uncertainty in the variance estimator: %f\n", UsquaredUpper1 - confIntLower2 - (UsquaredLower1 - confIntUpper2));
-		double t = gsl_cdf_tdist_Pinv(1.0 - 0.05 / 2.0, (double)(n - 1));
-		double conservativeSd = sqrt(UsquaredUpper1 - confIntLower2);
-		printf("Resulting conservative confidence interval for the supervised learning algorithm using the upper variance computation confidence interval:\n[%f %f %f]\n\n", lpo - t * conservativeSd, lpo, lpo + t * conservativeSd);
-	}
-	workspaceDel();
-	gsl_rng_free(r);
-}

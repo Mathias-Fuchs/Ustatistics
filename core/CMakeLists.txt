@@ -8,6 +8,7 @@ find_package(GSL REQUIRED)
 # static library.
 add_library(Ustatisticslib
 	regressionLearner.c
+	supervisedLearning.c
 	U.c
 )
 
