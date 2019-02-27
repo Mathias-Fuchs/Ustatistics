@@ -41,6 +41,8 @@ static inline void sampleWithoutReplacement(const size_t populationSize, const s
 	}
 }
 
+
+// struct to keep track of whether an unsigned int is beyond the bounds
 typedef struct {
 	unsigned int i;
 	int isInfty;
@@ -48,7 +50,7 @@ typedef struct {
 
 
 
-
+// binomialCoefficient unless second entry indicates it's too big
 static rr binomialCoefficient(size_t n, size_t k) {
 	rr b;
 	if (k == 0) {
@@ -57,6 +59,7 @@ static rr binomialCoefficient(size_t n, size_t k) {
 	if (k == 1) {
 		b.i = n; b.isInfty = 0; return b;
 	}
+	if (k > n/2) return binomialCoefficient(n, n-k);
 	rr o = binomialCoefficient(n - 1, k - 1);
 	if (o.isInfty || o.i > INT_MAX / n * k) {
 		b.isInfty = 1; return b;
@@ -68,7 +71,7 @@ static rr binomialCoefficient(size_t n, size_t k) {
 
 
 
-
+// number of ordered draws without replacement  unless second entry indicates it's too big. Equals binomial coefficient times factorial of k as long as defined.
 static rr drawWithoutReplacementInOrder(size_t n, size_t k) {
 	rr b;
 	if (k == 0) {
@@ -112,7 +115,7 @@ double U(
 	gsl_vector * resamplingResults;
 
 	// decide if we can generate all subsets
-	rr nrDraws = drawWithoutReplacementInOrder(n, m);
+	rr nrDraws = binomialCoefficient(n, m);
 
 	if (nrDraws.isInfty == 0 && nrDraws.i < 1e6) {
 		resamplingResults = gsl_vector_alloc(nrDraws.i);
@@ -124,7 +127,8 @@ double U(
 	if (nrDraws.isInfty == 0 && nrDraws.i < 1e6) {
 
 		// calculate the U-statistic exactly
-		// note that we do not assume the kernel is symmetric.
+		// note that we do assume the kernel is symmetric.
+		
 		gsl_combination* cmb = gsl_combination_calloc(n, m);
 		int b = 0;
 		do {
