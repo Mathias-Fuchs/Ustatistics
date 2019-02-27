@@ -27,12 +27,7 @@ typedef struct {
 	gsl_vector * EE;
 } regressionLearnerWorkspace;
 
-// static gsl_matrix* ii;
-// static gsl_matrix* CC;
-// static gsl_vector* DD;
-// static gsl_vector* EE;
-
-
+// a global variable but only in this file
 static regressionLearnerWorkspace ws;
 
 void workspaceInit(size_t p) {
@@ -40,12 +35,6 @@ void workspaceInit(size_t p) {
 	ws.DD = gsl_vector_alloc(p);
 	ws.EE = gsl_vector_alloc(p);
 	ws.ii = gsl_matrix_alloc(p, p);
-
-	// CC = gsl_matrix_alloc(p, p);
-	// DD = gsl_vector_alloc(p);
-	// EE = gsl_vector_alloc(p);
-	// ii = gsl_matrix_alloc(p, p);
-
 }
 
 void workspaceDel() {
@@ -55,9 +44,7 @@ void workspaceDel() {
 	gsl_matrix_free(ws.ii);
 }
 
-static inline double meanSquareLoss(double y1, double y2) {
-	return gsl_pow_2(y1 - y2);
-}
+static inline double meanSquareLoss(double y1, double y2) { return gsl_pow_2(y1 - y2); }
 
 // inversion of symmetric 3-by-3-matrix
 static inline void inv2inPlace(const gsl_matrix * m, gsl_matrix* result) {
@@ -94,46 +81,30 @@ double gamma(const gsl_matrix * data) {
 
 	// learn data of sizes g * p, and g  * 1 resp
 	gsl_matrix_const_view learnX = gsl_matrix_const_submatrix(data, 0, 0, g, p);
-	gsl_vector_const_view allResponses = gsl_matrix_const_column(data, p);
-	gsl_vector_const_view learnRespVec = gsl_vector_const_subvector(&allResponses.vector, 0, g);
+	gsl_vector_const_view learnY = gsl_matrix_const_subcolumn(data, p, 0, g);
 
 	// test data of sizes 1 * p, and 1 * 1 resp
-	gsl_matrix_const_view testX = gsl_matrix_const_submatrix(data, g, 0, 1, p);
-	gsl_vector_const_view Xtestview = gsl_matrix_const_subrow(&testX.matrix, g, 0, p);
+	gsl_vector_const_view testX = gsl_matrix_const_subrow(data, g, 0, p);
+	const double testY = gsl_matrix_get(data, g + 1, p + 1);
 
-	gsl_matrix_const_view testResp = gsl_matrix_const_submatrix(data, g, p, 1, 1);
-	double a0 = gsl_matrix_get(&testX.matrix, 0, 1); 
-	double a1 = gsl_matrix_get(&testX.matrix, 1, 1);
-	double a2 = gsl_matrix_get(&testX.matrix, 2, 1);
-
-	const gsl_matrix * Xlearn = &learnX.matrix;
-	const gsl_vector * Xtest = &Xtestview.vector;
-	const gsl_vector * ylearn = &ylearnview.vector;
-
-	//  writeDoubleVector(response);
-	double ytest = gsl_vector_get(response, response->size - 1);
-
-	gsl_blas_dgemm(CblasTrans, CblasNoTrans, 1.0, Xlearn, Xlearn, 0.0, ws.CC);
-	gsl_blas_dgemv(CblasTrans, 1.0, Xlearn, ylearn, 0.0, ws.DD);
+	gsl_blas_dgemm(CblasTrans, CblasNoTrans, 1.0, &learnX.matrix, &learnX.matrix, 0.0, ws.CC);
+	gsl_blas_dgemv(CblasTrans, 1.0, &learnX.matrix, &learnY.vector, 0.0, ws.DD);
 	inv2inPlace(ws.CC, ws.ii);
 
-
 	gsl_blas_dsymv(CblasUpper, 1.0, ws.ii, ws.DD, 0, ws.EE);
-
-
 
 	/* printf("coefficients\n"); */
 	/* writeDoubleVector(E); */
 	/* printf("\n"); */
 
 	double ypredicted;
-	gsl_blas_ddot(Xtest, ws.EE, &ypredicted);
+	gsl_blas_ddot(&testX.vector, ws.EE, &ypredicted);
 
 	// gsl_vector_set(predStorage, B, ypredicted);
 	//printf("true %f predicted %f difference %f \n", ytest, ypredicted, ytest - ypredicted);
 	//xprintf("%f\n", gsl_pow_2(ypredicted - ytest));
 
-	return meanSquareLoss(ypredicted, ytest);
+	return meanSquareLoss(ypredicted, testY);
 }
 
 double kernelForThetaSquared(const gsl_matrix * data, const gsl_vector * response) {
