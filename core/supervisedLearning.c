@@ -1,10 +1,13 @@
 #include <math.h>
 #include "U.h"
 #include "supervisedLearning.h"
-#include "regressionLearner.h"
 #include <gsl/gsl_rng.h>
 #include <assert.h>
 #include <gsl/gsl_cdf.h>
+
+// contains the kernel callback functions
+#include "regressionLearner.h"
+
 
 void analyzeDataset(const gsl_matrix* X, const gsl_vector* y, size_t B) {
 	assert(X->size1 == y->size);
