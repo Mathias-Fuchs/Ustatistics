@@ -47,6 +47,28 @@ typedef struct {
 } rr;
 
 
+
+
+static rr binomialCoefficient(size_t n, size_t k) {
+	rr b;
+	if (k == 0) {
+		b.i = 1; b.isInfty = 0; return b;
+	}
+	if (k == 1) {
+		b.i = n; b.isInfty = 0; return b;
+	}
+	rr o = binomialCoefficient(n - 1, k - 1);
+	if (o.isInfty || o.i > INT_MAX / n * k) {
+		b.isInfty = 1; return b;
+	}
+	b.i = o.i * n / k;
+	b.isInfty = 0;
+	return b;
+}
+
+
+
+
 static rr drawWithoutReplacementInOrder(size_t n, size_t k) {
 	rr b;
 	if (k == 0) {
@@ -83,8 +105,6 @@ double U(
 	double* UsquaredLower,
 	double* UsquaredUpper) {
 
-
-	
 	size_t n = data->size1;
 	size_t d = data->size2;
 
@@ -104,31 +124,17 @@ double U(
 	if (nrDraws.isInfty == 0 && nrDraws.i < 1e6) {
 
 		// calculate the U-statistic exactly
-		   // note that we do not assume the kernel is symmetric.
+		// note that we do not assume the kernel is symmetric.
 		gsl_combination* cmb = gsl_combination_calloc(n, m);
 		int b = 0;
 		do {
-			for (int i = 0; i < m; i++) {
-				for (int j = 0; j < d; j++) gsl_matrix_set(subsample, i, j, gsl_matrix_get(data, gsl_combination_data(cmb)[i], j));
+			for (int i= 0; i < m; i++) {
+				for (unsigned int j = 0; j < d; j++) gsl_matrix_set(subsample, i, j, gsl_matrix_get(data, gsl_combination_data(cmb)[i], j));
 			}
 			double newval = kernel(subsample);
 			gsl_vector_set(resamplingResults, b++, newval);
-
-	if (nrDraws.isInfty == 0 && nrDraws.i < 1e6) {
-
-		// calculate the U-statistic exactly
-		   // note that we do not assume the kernel is symmetric.
-		gsl_combination* cmb = gsl_combination_calloc(n, m);
-		int b = 0;
-		do {
-		  for (size_t i = 0; i < (unsigned int) m; i++) {
-				for (size_t j = 0; j < d; j++) gsl_matrix_set(subsample, i, j, gsl_matrix_get(data, gsl_combination_data(cmb)[i], j));
-			}
-			double newval = kernel(subsample);
-			gsl_vector_set(resamplingResults, b++, newval);
-
+			
 		} while (gsl_combination_next(cmb) == GSL_SUCCESS);
-
 		gsl_combination_free(cmb);
 	}
 	else {
@@ -136,7 +142,7 @@ double U(
 		for (size_t b = 0; b < B; b++) {
 			sampleWithoutReplacement(n, m, indices, r);
 			for (size_t i = 0; i < (unsigned int) m; i++) {
-			  for (size_t j = 0; j < (unsigned int) d; j++) gsl_matrix_set(subsample, i, j, gsl_matrix_get(data, indices[i], j));
+				for (size_t j = 0; j < (unsigned int) d; j++) gsl_matrix_set(subsample, i, j, gsl_matrix_get(data, indices[i], j));
 			}
 			double newval = kernel(subsample);
 			gsl_vector_set(resamplingResults, b, newval);
@@ -147,7 +153,7 @@ double U(
 		resamplingResults->data,
 		resamplingResults->stride,
 		resamplingResults->size
-	);
+		);
 
 	if (nrDraws.isInfty == 0 && nrDraws.i < 1e6) {
 		fprintf(stdout, "Have calculated the exact U-statistic and its square.");
@@ -166,7 +172,7 @@ double U(
 			resamplingResults->stride,
 			resamplingResults->size,
 			mean
-		);
+			);
 
 		double df = (double)(B - 1); // degrees of freedom in the estimation of the mean of the resampling results
 		double t = gsl_cdf_tdist_Pinv(1.0 - 0.05 / 2.0, df);

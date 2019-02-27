@@ -15,14 +15,13 @@ coreSharedObject:
 	gcc -shared *.o -o libustatistics.so
 #	cp libmfsl.so /opt/lib -v
 
-standardExamples: coreB
+mean: clean coreB
 	gcc -c $(CFLAGS) standardExamplesUstatistics/mean.c -o mean.o
 	gcc *.o $(LDFLAGS) -o mean
-	rm *.o
 
-	gcc -c $(CFLAGS) standardExamplesUstatistics/variance.c -o variance.o
-	gcc *.o $(LDFLAGS) -o mean
-	rm *.o
+variance: clean coreB
+	gcc -c 	$(CFLAGS) standardExamplesUstatistics/variance.c -o variance.o
+	gcc *.o $(LDFLAGS) -o variance
 
 randomGaussianB:
 	gcc -c $(CFLAGS) randomGaussianExample/main.c -o randomGaussian.o
@@ -43,7 +42,9 @@ concreteDatasetWithSharedObject:
 	cp sample_app/resources/bglWires.sqlite . -v	
 
 clean:
-	rm *.o
-	rm randomGaussianE
-	rm concreteDatasetExampleE
+	rm -f *.o
+	rm -f randomGaussianE
+	rm -f concreteDatasetExampleE
+	rm -f mean
+	rm -f variance
 
