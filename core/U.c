@@ -4,8 +4,9 @@
 #include <gsl/gsl_randist.h>
 #include <gsl/gsl_cdf.h>
 #include <gsl/gsl_math.h>
+#include <gsl/gsl_combination.h>
 #include <assert.h>
-#include "regressionLearner.h"
+#include <limits.h>
 
 
 static inline void sampleWithoutReplacement(const size_t populationSize, const size_t sampleSize, size_t * subsample, gsl_rng * r) {
@@ -40,6 +41,38 @@ static inline void sampleWithoutReplacement(const size_t populationSize, const s
 	}
 }
 
+static unsigned long long int binomialCoefficient(size_t n, size_t k) {
+	if (k == 0) return 1;
+	if (k == 1) return n;
+	if (k > n / 2) return binomialCoefficient(n, n - k);
+	return (int)n * binomialCoefficient(n - 1, k - 1) / (int)k;
+}
+
+
+typedef struct {
+	unsigned int i;
+	int isInfty;
+} rr;
+
+
+static rr drawWithoutReplacementInOrder(size_t n, size_t k) {
+	rr b;
+	if (k == 0) {
+		b.i = 1; b.isInfty = 0; return b;
+	}
+	if (k == 1) {
+		b.i = n; b.isInfty = 0; return b;
+	}
+	rr o = drawWithoutReplacementInOrder(n - 1, k - 1);
+	if (o.isInfty || o.i > INT_MAX / n) {
+		b.isInfty = 1; return b;
+	}
+	b.i = o.i * n;
+	b.isInfty = 0;
+	return b;
+}
+
+
 
 /* computes a U-statistic of degree m by resampling B times */
 // compute two confidence intervals: one to express the certainty about the approximation of the true U-statistic by  a finite sample,
@@ -57,30 +90,70 @@ double U(
 	double* Usquared,
 	double* UsquaredLower,
 	double* UsquaredUpper) {
-	int n = data->size1;
-	int d = data->size2;
 
-	gsl_vector * resamplingResults = gsl_vector_alloc(B);
+
+	
+	size_t n = data->size1;
+	size_t d = data->size2;
+
 	gsl_matrix * subsample = gsl_matrix_alloc(m, d);
-	gsl_vector * predStorage = gsl_vector_alloc(B);
+	gsl_vector * resamplingResults;
 
-	// will hold the indices of a subsample
-	size_t * indices = malloc(m * sizeof(size_t));
+	// decide if we can generate all subsets
+	rr nrDraws = drawWithoutReplacementInOrder(n, m);
 
-	for (size_t b = 0; b < B; b++) {
-		sampleWithoutReplacement(n, m, indices, r);
-		for (int i = 0; i < m; i++) {
-			for (int j = 0; j < d; j++) gsl_matrix_set(subsample, i, j, gsl_matrix_get(data, indices[i], j));
-		}
-		double newval = kernel(subsample);
-		gsl_vector_set(resamplingResults, b, newval);
+	if (nrDraws.isInfty == 0 && nrDraws.i < 1e6) {
+		resamplingResults = gsl_vector_alloc(nrDraws.i);
+	}
+	else {
+		resamplingResults = gsl_vector_alloc(B);
 	}
 
+	if (nrDraws.isInfty == 0 && nrDraws.i < 1e6) {
+
+		// calculate the U-statistic exactly
+		   // note that we do not assume the kernel is symmetric.
+		gsl_combination* cmb = gsl_combination_calloc(n, m);
+		int b = 0;
+		do {
+			for (int i = 0; i < m; i++) {
+				for (int j = 0; j < d; j++) gsl_matrix_set(subsample, i, j, gsl_matrix_get(data, gsl_combination_data(cmb)[i], j));
+			}
+			double newval = kernel(subsample);
+			gsl_vector_set(resamplingResults, b++, newval);
+
+		} while (gsl_combination_next(cmb) == GSL_SUCCESS);
+
+		gsl_combination_free(cmb);
+	}
+	else {
+		size_t * indices = malloc(m * sizeof(size_t));
+		for (size_t b = 0; b < B; b++) {
+			sampleWithoutReplacement(n, m, indices, r);
+			for (int i = 0; i < m; i++) {
+				for (int j = 0; j < d; j++) gsl_matrix_set(subsample, i, j, gsl_matrix_get(data, indices[i], j));
+			}
+			double newval = kernel(subsample);
+			gsl_vector_set(resamplingResults, b, newval);
+		}
+		free(indices);
+	}
 	double mean = gsl_stats_mean(
 		resamplingResults->data,
 		resamplingResults->stride,
 		resamplingResults->size
 	);
+
+	if (nrDraws.isInfty == 0 && nrDraws.i < 1e6) {
+		fprintf(stdout, "Have calculated the exact U-statistic and its square.");
+		if (confIntLower) *confIntLower = mean;
+		if (confIntUpper) *confIntUpper = mean;
+		if (Usquared) *Usquared = mean * mean;
+		if (UsquaredLower) *UsquaredLower = *Usquared;
+		if (UsquaredUpper) *UsquaredUpper = *Usquared;
+		return mean;
+	}
+
 
 	if (confIntLower || confIntUpper || Usquared) {
 		double reSampleSd = gsl_stats_sd_m(
@@ -143,15 +216,11 @@ double U(
 			double K = EstimatedSquareOfMean * EstimatedSquareOfMean - EstimatedFourthPowerOfMean;
 			*Usquared = EstimatedSquareOfMean;
 			// note that we don't need to divide K by B
-			if (UsquaredLower) *UsquaredLower = EstimatedSquareOfMean - t * sqrt(K); 
+			if (UsquaredLower) *UsquaredLower = EstimatedSquareOfMean - t * sqrt(K);
 			if (UsquaredUpper) *UsquaredUpper = EstimatedSquareOfMean + t * sqrt(K);
 		}
 	}
-	free(indices);
 	gsl_matrix_free(subsample);
-	gsl_vector_free(predStorage);
 	gsl_vector_free(resamplingResults);
 	return(mean);
 }
-
-
