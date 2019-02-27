@@ -61,14 +61,13 @@ double U(
 	int d = data->size2;
 
 	gsl_vector * resamplingResults = gsl_vector_alloc(B);
-	gsl_vector * cumSum = gsl_vector_alloc(B);
 	gsl_matrix * subsample = gsl_matrix_alloc(m, d);
 	gsl_vector * predStorage = gsl_vector_alloc(B);
 
 	// will hold the indices of a subsample
 	size_t * indices = malloc(m * sizeof(size_t));
 
-	for (int b = 0; b < B; b++) {
+	for (size_t b = 0; b < B; b++) {
 		sampleWithoutReplacement(n, m, indices, r);
 		for (int i = 0; i < m; i++) {
 			for (int j = 0; j < d; j++) gsl_matrix_set(subsample, i, j, gsl_matrix_get(data, indices[i], j));
@@ -99,14 +98,14 @@ double U(
 		// we want t * reSampleSd / sqrt(B) == precision, so, by a standard sample size calculation,
 		float Brequired = (float)(t * t * reSampleSd * reSampleSd / precision / precision);
 
-		fprintf(stdout, "To achieve a relative precision of 1e-2, one would need %i iterations instead of currently %i,\n", (int)Brequired, B);
+		fprintf(stdout, "To achieve a relative precision of 1e-2, one would need %i iterations instead of currently %i,\n", (int)Brequired, (int)B);
 		fprintf(stdout, "i.e., %f as many.\n", Brequired / (float)B);
 
 		if (Usquared) {
 			double* N = calloc(4 * B, sizeof(double));
 			if (!N) { fprintf(stderr, "Out of memory.\n"); exit(1); }
-			for (int i = 0; i < B; i++) N[i + B * 0] = (i ? N[i - 1 + B * 0] : 0) + gsl_vector_get(resamplingResults, i);
-			for (int i = 1; i < B; i++) for (int j = 1; j < 4; j++) N[i + B * j] = gsl_vector_get(resamplingResults, i) * N[i - 1 + B * (j - 1)] + N[i - 1 + B * j];
+			for (size_t i = 0; i < B; i++) N[i + B * 0] = (i ? N[i - 1 + B * 0] : 0) + gsl_vector_get(resamplingResults, i);
+			for (size_t i = 1; i < B; i++) for (int j = 1; j < 4; j++) N[i + B * j] = gsl_vector_get(resamplingResults, i) * N[i - 1 + B * (j - 1)] + N[i - 1 + B * j];
 
 #ifdef codeToCheckCorrectness
 			// old code to check the sum of all products of distinct pairs and triples
@@ -134,7 +133,7 @@ double U(
 #endif
 
 			double sumOfProductsOfDistinctPairs = N[B - 1 + B];
-			double sumOfProductsOfDistinctTriples = N[B - 1 + B * 2];
+			// double sumOfProductsOfDistinctTriples = N[B - 1 + B * 2];
 			double sumOfProductsOfDistinctQuadruples = N[B - 1 + B * 3];
 			free(N);
 

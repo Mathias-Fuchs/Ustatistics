@@ -75,7 +75,7 @@ static inline void inv2inPlace(const gsl_matrix * m, gsl_matrix* result) {
 /* Gamma is  || betaHat Xtest - Ytest ||^2 = */
 /*   (Xtest * (Xlearn^t Xlearn)^(-1) *  Xlearn ^t * Ylearn - Ytest )^2 */
 
-double gamma(const gsl_matrix * data) {
+double kernelTheta(const gsl_matrix * data) {
 	int g = data->size1 - 1;
 	int p = data->size2 - 1;
 
@@ -113,5 +113,5 @@ double kernelForThetaSquared(const gsl_matrix * data) {
 	// the first half of the rows gets fed into the first gamma, and the second into the other
 	gsl_matrix_const_view data1 = gsl_matrix_const_submatrix(data, 0, 0, data->size1 / 2, data->size2);
 	gsl_matrix_const_view data2 = gsl_matrix_const_submatrix(data, data->size1 / 2, 0, data->size1 / 2, data->size2);
-	return gamma(&data1.matrix) * gamma(&data2.matrix);
+	return kernelTheta(&data1.matrix) * kernelTheta(&data2.matrix);
 }

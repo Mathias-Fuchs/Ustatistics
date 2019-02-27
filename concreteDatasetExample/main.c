@@ -20,18 +20,19 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include "U.h"
+#include "supervisedLearning.h"
 #include <gsl/gsl_vector_double.h>
 #include <gsl/gsl_matrix.h>
 
 
-int main(int argc, char ** argv) {
+int main() {
 
 	size_t B = 1e5; // number of resamples in each iteration
 
 	FILE * f = fopen("slump.dat", "rb");
 	if (!f) fprintf(stderr, "input file not found!\n");
 	gsl_matrix * X = gsl_matrix_alloc(103, 3);
-	int h = gsl_matrix_fscanf(f, X);
+	gsl_matrix_fscanf(f, X);
 	fclose(f);
 	f = fopen("slumpResponse.dat", "rb");
 	if (!f) fprintf(stderr, "response input file not found!\n");

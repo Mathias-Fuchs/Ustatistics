@@ -28,8 +28,8 @@
 
 gsl_matrix * RandomData(size_t n, size_t  p, gsl_rng * r) {
 	gsl_matrix * data = gsl_matrix_alloc(n, p);
-	for (int i = 0; i < n; i++) {
-		for (int j = 0; j < p; j++) {
+	for (size_t i = 0; i < n; i++) {
+		for (size_t j = 0; j < p; j++) {
 			double t = gsl_rng_uniform(r);
 			gsl_matrix_set(data, i, j, t);
 		}
@@ -45,14 +45,14 @@ gsl_vector * RandomResponse(int n, gsl_rng * r) {
 	return res;
 }
 
-int main(int argc, char ** argv) {
+int main() {
 	size_t n = 103;
 	size_t p = 3;
 	size_t B = 1e4; // number of resamples in each iteration
 	gsl_rng * r = gsl_rng_alloc(gsl_rng_taus2);
 	gsl_rng_set(r, 1234);
-	gsl_matrix * X = RandomData(n, p, r);
-	gsl_matrix* y = RandomResponse(n, r);
+	gsl_matrix* X = RandomData(n, p, r);
+	gsl_vector* y = RandomResponse(n, r);
 	gsl_rng_free(r);
 	analyzeDataset(X, y, B);
 	gsl_matrix_free(X);

@@ -1,8 +1,10 @@
+#include <math.h>
+#include "U.h"
 #include "supervisedLearning.h"
 #include "regressionLearner.h"
 #include <gsl/gsl_rng.h>
 #include <assert.h>
-
+#include <gsl/gsl_cdf.h>
 
 void analyzeDataset(const gsl_matrix* X, const gsl_vector* y, size_t B) {
 	assert(X->size1 == y->size);
@@ -24,9 +26,9 @@ void analyzeDataset(const gsl_matrix* X, const gsl_vector* y, size_t B) {
 	for (size_t g = (n - 2) / 4; g < (n - 2) / 2; g++) {
 		double confIntLower1, confIntUpper1, Usquared1, UsquaredLower1, UsquaredUpper1;
 		double confIntLower2, confIntUpper2;
-		double lpo = U(data, B, g + 1, r, &gamma, &confIntLower1, &confIntUpper1, &Usquared1, &UsquaredLower1, &UsquaredUpper1);
+		double lpo = U(data, B, g + 1, r, &kernelTheta, &confIntLower1, &confIntUpper1, &Usquared1, &UsquaredLower1, &UsquaredUpper1);
 		double t2 = U(data, B, 2 * g + 2, r, &kernelForThetaSquared, &confIntLower2, &confIntUpper2, NULL, NULL, NULL);
-		printf("Learning set size: %i\n", g);
+		printf("Learning set size: %i\n", (int) g);
 		printf("Leave-p-out estimator with confidence interval for its exact computation:\n[%f %f %f]\n", confIntLower1, lpo, confIntUpper1);
 		printf("Its square with confidence interval for its computation:\n[%f %f %f]\n", UsquaredLower1, Usquared1, UsquaredUpper1);
 		printf("Computation uncertainty in lposquared %f\n", UsquaredUpper1 - UsquaredLower1);

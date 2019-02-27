@@ -1,7 +1,10 @@
+*.dat
+randomGaussianE
+concreteDatasetExampleE
+*.o
 .vs
 slnx.sqlite
 concrete
-concrete.o
 *~
 /.gitignore.swp
 /enc_temp_folder

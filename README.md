@@ -55,7 +55,7 @@ This repository contains code that re-samples a kernel of a U-statistic often en
 In particular, this is applied to the problem of estimating the mean square loss of linear regression where both learning and testing are random.
 
 We denote by *theta* the expectation of the mean square of linear regression.
-Estimating *theta* is done with a U-statistic whose kernel is implemented in the function gamma.
+Estimating *theta* is done with a U-statistic whose kernel is implemented in the function kernelTheta.
 Let us abbreviate the leave-p-out estimator of theta with TH (for theta-hat.)
 
 Likewise, the  estimator of its variance is given by the difference of two different U-statistics:
