@@ -1,0 +1,37 @@
+
+CFLAGS += -Wall -Wextra -I/usr/include/ -I/usr/include/eigen3 `pkg-config --cflags eigen3 sqlite3 fftw3f`
+LDFLAGS += -lGL `pkg-config --static --libs eigen3 sqlite3 glfw3 fftw3f` -lGLU -lglut 
+
+
+blurPlanO:
+	gcc -c $(CFLAGS) core/blur_plan.c -o blur_plan.o
+
+sampleAppO:
+	g++ -c $(CFLAGS) sample_app/main.cpp
+
+coreO:
+	g++ -c $(CFLAGS) core/objreader/*.cpp core/*.cpp 
+
+sampleApp: blurPlanO coreO sampleAppO
+	g++ *.o $(LDFLAGS) -o sampleApp
+
+all: sampleApp
+	cp sample_app/resources/bglWires.sqlite . -v
+
+slcoreSharedObject:
+	rm main.o
+	gcc -fPIC -c $(CFLAGS) core/*.c
+	g++ -fPIC -c $(CFLAGS) core/objreader/*.cpp core/*.cpp
+	g++ -shared *.o -o libmfsl.so
+#	cp libmfsl.so /opt/lib -v
+
+sampleAppWithSharedObject:
+	g++ -c $(CFLAGS) sample_app/main.cpp
+	g++ main.o -Wl,-rpath,. -L. -lmfsl $(LDFLAGS) -o sampleAppWithSharedObject
+	cp sample_app/resources/bglWires.sqlite . -v	
+
+clean:
+	rm *.o
+	rm sampleApp
+
+
