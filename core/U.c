@@ -41,14 +41,6 @@ static inline void sampleWithoutReplacement(const size_t populationSize, const s
 	}
 }
 
-static unsigned long long int binomialCoefficient(size_t n, size_t k) {
-	if (k == 0) return 1;
-	if (k == 1) return n;
-	if (k > n / 2) return binomialCoefficient(n, n - k);
-	return (int)n * binomialCoefficient(n - 1, k - 1) / (int)k;
-}
-
-
 typedef struct {
 	unsigned int i;
 	int isInfty;
@@ -122,6 +114,19 @@ double U(
 			double newval = kernel(subsample);
 			gsl_vector_set(resamplingResults, b++, newval);
 
+	if (nrDraws.isInfty == 0 && nrDraws.i < 1e6) {
+
+		// calculate the U-statistic exactly
+		   // note that we do not assume the kernel is symmetric.
+		gsl_combination* cmb = gsl_combination_calloc(n, m);
+		int b = 0;
+		do {
+		  for (size_t i = 0; i < (unsigned int) m; i++) {
+				for (size_t j = 0; j < d; j++) gsl_matrix_set(subsample, i, j, gsl_matrix_get(data, gsl_combination_data(cmb)[i], j));
+			}
+			double newval = kernel(subsample);
+			gsl_vector_set(resamplingResults, b++, newval);
+
 		} while (gsl_combination_next(cmb) == GSL_SUCCESS);
 
 		gsl_combination_free(cmb);
@@ -130,8 +135,8 @@ double U(
 		size_t * indices = malloc(m * sizeof(size_t));
 		for (size_t b = 0; b < B; b++) {
 			sampleWithoutReplacement(n, m, indices, r);
-			for (int i = 0; i < m; i++) {
-				for (int j = 0; j < d; j++) gsl_matrix_set(subsample, i, j, gsl_matrix_get(data, indices[i], j));
+			for (size_t i = 0; i < (unsigned int) m; i++) {
+			  for (size_t j = 0; j < (unsigned int) d; j++) gsl_matrix_set(subsample, i, j, gsl_matrix_get(data, indices[i], j));
 			}
 			double newval = kernel(subsample);
 			gsl_vector_set(resamplingResults, b, newval);

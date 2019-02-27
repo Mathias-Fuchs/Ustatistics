@@ -15,6 +15,15 @@ coreSharedObject:
 	gcc -shared *.o -o libustatistics.so
 #	cp libmfsl.so /opt/lib -v
 
+standardExamples: coreB
+	gcc -c $(CFLAGS) standardExamplesUstatistics/mean.c -o mean.o
+	gcc *.o $(LDFLAGS) -o mean
+	rm *.o
+
+	gcc -c $(CFLAGS) standardExamplesUstatistics/variance.c -o variance.o
+	gcc *.o $(LDFLAGS) -o mean
+	rm *.o
+
 randomGaussianB:
 	gcc -c $(CFLAGS) randomGaussianExample/main.c -o randomGaussian.o
 

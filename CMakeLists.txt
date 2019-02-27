@@ -19,6 +19,8 @@ find_package(GSL REQUIRED)
 # core Ustatistics component; builds a static library.
 add_subdirectory(core)
 
+add_subdirectory(standardExamplesUstatistics)
+
 # example executable containing the concrete dataset
 add_subdirectory(concreteDatasetExample)
 
