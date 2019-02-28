@@ -97,23 +97,25 @@ static rr drawWithoutReplacementInOrder(size_t n, size_t k) {
 // Finally, these two are combined into one confidence interval.
 
 double U(
-	const gsl_matrix * data,
+	const gsl_matrix* data,
 	const size_t B,
 	const int m,
-	gsl_rng * r,
+	gsl_rng* r,
 	double(*kernel)(const gsl_matrix *),
 	double* confIntLower,
 	double* confIntUpper,
-	double* Usquared,
-	double* UsquaredLower,
-	double* UsquaredUpper) {
+	double* varianceU,
+	double* varianceULower,	
+	double* varianceUUpper
+	) {
 
 	size_t n = data->size1;
 	size_t d = data->size2;
 
 	gsl_matrix * subsample = gsl_matrix_alloc(m, d);
 	gsl_vector * resamplingResults;
-
+	double Usquared, UsquaredLower, UsquaredUpper;
+	
 	// decide if we can generate all subsets
 	rr nrDraws = binomialCoefficient(n, m);
 
@@ -163,14 +165,10 @@ double U(
 		fprintf(stdout, "Have calculated the exact U-statistic and its square.");
 		if (confIntLower) *confIntLower = mean;
 		if (confIntUpper) *confIntUpper = mean;
-		if (Usquared) *Usquared = mean * mean;
-		if (UsquaredLower) *UsquaredLower = *Usquared;
-		if (UsquaredUpper) *UsquaredUpper = *Usquared;
-		return mean;
 	}
 
 
-	if (confIntLower || confIntUpper || Usquared) {
+	if (confIntLower || confIntUpper) {
 		double reSampleSd = gsl_stats_sd_m(
 			resamplingResults->data,
 			resamplingResults->stride,
@@ -188,8 +186,9 @@ double U(
 
 		fprintf(stdout, "To achieve a relative precision of 1e-2, %i iterations are needed,\n", (int)Brequired, (int)B);
 		fprintf(stdout, "i.e., %f as many.\n", Brequired / (float)B);
-
-		if (Usquared) {
+		
+		if (2 * m <= n) {
+			// in that case we prepare for the variance computation
 			double* N = calloc(4 * B, sizeof(double));
 			if (!N) { fprintf(stderr, "Out of memory.\n"); exit(1); }
 			for (size_t i = 0; i < B; i++) N[i + B * 0] = (i ? N[i - 1 + B * 0] : 0) + gsl_vector_get(resamplingResults, i);
@@ -229,68 +228,66 @@ double U(
 			double EstimatedFourthPowerOfMean = sumOfProductsOfDistinctQuadruples / (double)B / (double)(B - 1) / (double)(B - 2) / (double)(B - 3) * 24.0;
 
 			double K = EstimatedSquareOfMean * EstimatedSquareOfMean - EstimatedFourthPowerOfMean;
-			*Usquared = EstimatedSquareOfMean;
-			// note that we don't need to divide K by B
-			if (UsquaredLower) *UsquaredLower = EstimatedSquareOfMean - t * sqrt(K);
-			if (UsquaredUpper) *UsquaredUpper = EstimatedSquareOfMean + t * sqrt(K);
+
+			// the best estimator for the square of the actual U-statistic
+			Usquared = EstimatedSquareOfMean;
+
+// note that we don't need to divide K by B
+			UsquaredLower = EstimatedSquareOfMean - t * sqrt(K);
+			UsquaredUpper = EstimatedSquareOfMean + t * sqrt(K);
 		}
 	}
 	gsl_matrix_free(subsample);
 	gsl_vector_free(resamplingResults);
-	return(mean);
 
-
-	// now try to estimate the population variance of the U-statistic
-	if (2 * m <= n) {
+	// now try to estimate the population variance of the U-statistic in case this is possible
+	if (2 * m <= n && varianceU) {
 		subsample = gsl_matrix_alloc(2 * m, d);
-
-		// decide if we can generate all subsets
-		nrDraws = binomialCoefficient(n, 2 * m);
-
-		if (nrDraws.isInfty == 0 && nrDraws.i < 1e6) {
-			resamplingResults = gsl_vector_alloc(nrDraws.i);
-		}
-		else {
-			resamplingResults = gsl_vector_alloc(B);
-		}
-
-		if (nrDraws.isInfty == 0 && nrDraws.i < 1e6) {
-			gsl_combination* cmb = gsl_combination_calloc(n, 2 * m);
-			int b = 0;
-			do {
-				for (int i = 0; i < m; i++) {
-					for (unsigned int j = 0; j < d; j++) gsl_matrix_set(subsample, i, j, gsl_matrix_get(data, gsl_combination_data(cmb)[i], j));
-				}
-				gsl_matrix_const_view data1 = gsl_matrix_const_submatrix(subsample, 0, 0, subsample->size1 / 2, subsample->size2);
-				gsl_matrix_const_view data2 = gsl_matrix_const_submatrix(subsample, subsample->size1 / 2, 0, subsample->size1 / 2, subsample->size2);
+		resamplingResults = gsl_vector_alloc(B);
 		
-				// remains to make symmetric
-				double newval = kernelTheta(&data1.matrix) * kernelTheta(&data2.matrix);
-				gsl_vector_set(resamplingResults, b++, newval);
-
-			} while (gsl_combination_next(cmb) == GSL_SUCCESS);
-			gsl_combination_free(cmb);
-		}
-		else {
-			size_t * indices = malloc(m * sizeof(size_t));
-			for (size_t b = 0; b < B; b++) {
-				sampleWithoutReplacement(n, m, indices, r);
-				for (size_t i = 0; i < (unsigned int)m; i++) {
-					for (size_t j = 0; j < (unsigned int)d; j++) gsl_matrix_set(subsample, i, j, gsl_matrix_get(data, indices[i], j));
-				}
-				double newval = kernel(subsample);
-				gsl_vector_set(resamplingResults, b, newval);
+		// one could also compute whether all pairs of disjoint m-subsets of 1...n are few enough to iterate through.
+		indices = malloc(2 * m * sizeof(size_t));
+		for (int b = 0; b < B; b++) {
+			sampleWithoutReplacement(n, 2 * m, indices, r);
+			for (size_t i = 0; i < (unsigned int) (2 * m); i++) {
+				for (size_t j = 0; j < (unsigned int) d; j++) gsl_matrix_set(subsample, i, j, gsl_matrix_get(data, indices[i], j));
 			}
-			free(indices);
+			gsl_matrix_const_view data1 = gsl_matrix_const_submatrix(subsample, 0, 0, subsample->size1 / 2, subsample->size2);
+			gsl_matrix_const_view data2 = gsl_matrix_const_submatrix(subsample, subsample->size1 / 2, 0, subsample->size1 / 2, subsample->size2);
+			
+			double newval = kernel(&data1.matrix) * kernel(&data2.matrix);
+			gsl_vector_set(resamplingResults, b, newval);
 		}
-		double mean = gsl_stats_mean(
+		
+		double estimatorThetaSquared = gsl_stats_mean(
 			resamplingResults->data,
 			resamplingResults->stride,
 			resamplingResults->size
-		);
+			);
+		
+		double tsSd = gsl_stats_sd_m(
+			resamplingResults->data,
+			resamplingResults->stride,
+			resamplingResults->size,
+			estimatorThetaSquared
+			);
+		
+		double estimatorThetaSquareLower = estimatorThetaSquared - t * tsSd / sqrt((double)B);
+		double estimatorThetaSquareUpper = estimatorThetaSquared + t * tsSd / sqrt((double)B);
+		
+// the estimated variance of the U-statistic
+		if (varianceU) *varianceU = Usquared - estimatorThetaSquared;
+		
+		// Let's try to compute how confident we can by into the computation accuracy of the variance estimator
+		if (varianceUUpper) *varianceUUpper = UsquaredUpper - estimatorThetaSquareLower;
+		if (varianceULower) *varianceULower = UsquaredLower - estimatorThetaSquareUpper;
 
-
-
+		// now compute the confidence interval for the U-statistic itself, the most interesting confidence interval.
+		// should yield the t-test confidence interval
+		double tt = gsl_cdf_tdist_Pinv(1.0 - 0.05 / 2.0, (double)(n - 1));
+		double conservativeSd = sqrt(*varianceUUpper);
+		double thetaLower = mean - tt * conservativeSd;
+		double thetaUpper = mean + tt * conservativeSd;
 	}
-
+	return(mean);
 }
