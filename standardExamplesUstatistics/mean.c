@@ -9,7 +9,7 @@ double kern(const gsl_matrix* data) {
 int main() {
 	gsl_rng* r = gsl_rng_alloc(gsl_rng_taus2);
 	gsl_rng_set(r, 1234);
-	size_t B = 1e4;
+	size_t B = 1e6;
 	gsl_matrix* data = gsl_matrix_alloc(10, 1);
 	gsl_matrix_set(data, 0, 0, 2.0);
 	gsl_matrix_set(data, 1, 0, 2.0);
