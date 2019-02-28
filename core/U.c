@@ -20,10 +20,13 @@ static inline void sampleWithoutReplacement(const size_t populationSize, const s
 	while (m < n) {
 		u = gsl_rng_uniform_pos(r); // call a uniform(0,1) random number generat
 
+		
 		if ((N - t) *  u >= n - m) {
+			// happens with probability 1 - (n-m)/(N-t)
 			t++;
 		}
 		else {
+			// happens with probability (n-m)/(N-t)
 			subsample[m] = t;
 			t++;
 			m++;
@@ -186,7 +189,7 @@ double U(
 		// we want t * reSampleSd / sqrt(B) == precision, so, by a standard sample size calculation,
 		float Brequired = (float)(t * t * reSampleSd * reSampleSd / precision / precision);
 
-		fprintf(stdout, "To achieve a relative precision of 1e-2, one would need %i iterations instead of currently %i,\n", (int)Brequired, (int)B);
+		fprintf(stdout, "To achieve a relative precision of 1e-2, %i iterations are needed,\n", (int)Brequired, (int)B);
 		fprintf(stdout, "i.e., %f as many.\n", Brequired / (float)B);
 
 		if (Usquared) {
