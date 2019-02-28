@@ -21,8 +21,9 @@ int main() {
 	gsl_matrix_set(data, 7, 0, 5.0);
 	gsl_matrix_set(data, 8, 0, 4.0);
 	gsl_matrix_set(data, 9, 0, 6.0);
-	double confIntLower1, confIntUpper1, Usquared1, UsquaredLower1, UsquaredUpper1;
-	double estimatedMean = U(data, B, 1, r, &kern, &confIntLower1, &confIntUpper1, &Usquared1, &UsquaredLower1, &UsquaredUpper1);
-	printf("U-statistic with confidence interval for its exact computation:\n[%f %f %f]\n", confIntLower1, estimatedMean, confIntUpper1);
-	printf("Its square with confidence interval for its computation:\n[%f %f %f]\n", UsquaredLower1, Usquared1, UsquaredUpper1);
+	double computationConfIntLower, computationConfIntUpper, thetaConfIntLower, thetaConfIntUpper;
+	double estimatedMean = U(
+		data, B, 1, r, kern, &computationConfIntLower, &computationConfIntUpper, &thetaConfIntLower, &thetaConfIntUpper);
+	printf("U-statistic with confidence interval for its exact computation:\n[%f %f %f]\n", computationConfIntLower, estimatedMean, computationConfIntUpper);
+	printf("U-statistic with confidence interval for the population value:\n[%f %f %f]\n", thetaConfIntLower, estimatedMean, thetaConfIntUpper);
 }

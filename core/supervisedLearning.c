@@ -27,23 +27,12 @@ void analyzeDataset(const gsl_matrix* X, const gsl_vector* y, size_t B) {
 	workspaceInit(3);
 
 	for (size_t g = (n - 2) / 4; g < (n - 2) / 2; g++) {
-		double confIntLower1, confIntUpper1, Usquared1, UsquaredLower1, UsquaredUpper1;
-		double confIntLower2, confIntUpper2;
-		double lpo = U(data, B, g + 1, r, &kernelTheta, &confIntLower1, &confIntUpper1, &Usquared1, &UsquaredLower1, &UsquaredUpper1);
-		double t2 = U(data, B, 2 * g + 2, r, &kernelForThetaSquared, &confIntLower2, &confIntUpper2, NULL, NULL, NULL);
-		printf("Learning set size: %i\n", (int) g);
-		printf("Leave-p-out estimator with confidence interval for its exact computation:\n[%f %f %f]\n", confIntLower1, lpo, confIntUpper1);
-		printf("Its square with confidence interval for its computation:\n[%f %f %f]\n", UsquaredLower1, Usquared1, UsquaredUpper1);
-		printf("Computation uncertainty in lposquared %f\n", UsquaredUpper1 - UsquaredLower1);
-		printf("Computation uncertainty in thetasquared: %f\n", confIntUpper2 - confIntLower2);
-		printf("Adjust the Bs by a factor of %f therefore.\n", (UsquaredUpper1 - UsquaredLower1) / (confIntUpper2 - confIntLower2) * (UsquaredUpper1 - UsquaredLower1) / (confIntUpper2 - confIntLower2));
-		printf("Computation confidence interval for the variance estimator:\n[%f %f %f]\n", UsquaredLower1 - confIntUpper2, Usquared1 - t2, UsquaredUpper1 - confIntLower2);
-		printf("Computation uncertainty in the variance estimator: %f\n", UsquaredUpper1 - confIntLower2 - (UsquaredLower1 - confIntUpper2));
-		double t = gsl_cdf_tdist_Pinv(1.0 - 0.05 / 2.0, (double)(n - 1));
-		if (UsquaredUpper1 > confIntLower2) {
-			double conservativeSd = sqrt(UsquaredUpper1 - confIntLower2);
-			printf("Resulting conservative confidence interval for the supervised learning algorithm using the upper variance computation confidence interval:\n[%f %f %f]\n\n", lpo - t * conservativeSd, lpo, lpo + t * conservativeSd);
-		}
+		fprintf(stdout, "learning set size: %i.\n", g);
+		double computationConfIntLower, computationConfIntUpper, thetaConfIntLower, thetaConfIntUpper;
+		double estimatedMean = U(
+			data, B, 1, r, &kernelTheta, &computationConfIntLower, &computationConfIntUpper, &thetaConfIntLower, &thetaConfIntUpper);
+		printf("U-statistic with confidence interval for its exact computation:\n[%f %f %f]\n", computationConfIntLower, estimatedMean, computationConfIntUpper);
+		printf("U-statistic with confidence interval for the population value:\n[%f %f %f]\n", thetaConfIntLower, estimatedMean, thetaConfIntUpper);
 	}
 	workspaceDel();
 	gsl_matrix_free(data);

@@ -4,13 +4,13 @@
 #include <gsl/gsl_rng.h>
 
 double U(
-	const gsl_matrix * data,
+	const gsl_matrix* data,
 	const size_t B,
 	const int m,
-	gsl_rng * r,
+	gsl_rng* r,
 	double(*kernel)(const gsl_matrix *),
-	double* confIntLower,
-	double* confIntUpper,
-	double* Usquared,
-	double* UsquaredLower,
-	double* UsquaredUpper);
+	double* computationConfIntLower,
+	double* computationConfIntUpper,
+	double* thetaConfIntLower,
+	double* thetaConfIntUpper
+	);
