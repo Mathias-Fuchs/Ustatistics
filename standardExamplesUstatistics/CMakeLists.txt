@@ -1,7 +1,7 @@
 ﻿
 cmake_minimum_required (VERSION 3.0.2)
 project (mean)
-# project(variance)
+project(variance)
 
 include_directories("../core")
 find_package(GSL REQUIRED)
@@ -9,8 +9,8 @@ find_package(GSL REQUIRED)
 add_executable(mean
  mean.c)
 
-#add_executable(variance
-# variance.c)
+add_executable(variance
+ variance.c)
 
 
 target_link_libraries(mean
@@ -19,8 +19,8 @@ target_link_libraries(mean
  GSL::gslcblas
 )
 
-#target_link_libraries(variance
- #Ustatisticslib
-# GSL::gsl
- #GSL::gslcblas
-#)
+target_link_libraries(variance
+ Ustatisticslib
+ GSL::gsl
+ GSL::gslcblas
+)

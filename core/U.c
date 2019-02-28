@@ -44,14 +44,11 @@ static inline void sampleWithoutReplacement(const size_t populationSize, const s
 	}
 }
 
-
 // struct to keep track of whether an unsigned int is beyond the bounds
 typedef struct {
 	unsigned int i;
 	int isInfty;
 } rr;
-
-
 
 // binomialCoefficient unless second entry indicates it's too big
 static rr binomialCoefficient(size_t n, size_t k) {
@@ -241,4 +238,59 @@ double U(
 	gsl_matrix_free(subsample);
 	gsl_vector_free(resamplingResults);
 	return(mean);
+
+
+	// now try to estimate the population variance of the U-statistic
+	if (2 * m <= n) {
+		subsample = gsl_matrix_alloc(2 * m, d);
+
+		// decide if we can generate all subsets
+		nrDraws = binomialCoefficient(n, 2 * m);
+
+		if (nrDraws.isInfty == 0 && nrDraws.i < 1e6) {
+			resamplingResults = gsl_vector_alloc(nrDraws.i);
+		}
+		else {
+			resamplingResults = gsl_vector_alloc(B);
+		}
+
+		if (nrDraws.isInfty == 0 && nrDraws.i < 1e6) {
+			gsl_combination* cmb = gsl_combination_calloc(n, 2 * m);
+			int b = 0;
+			do {
+				for (int i = 0; i < m; i++) {
+					for (unsigned int j = 0; j < d; j++) gsl_matrix_set(subsample, i, j, gsl_matrix_get(data, gsl_combination_data(cmb)[i], j));
+				}
+				gsl_matrix_const_view data1 = gsl_matrix_const_submatrix(subsample, 0, 0, subsample->size1 / 2, subsample->size2);
+				gsl_matrix_const_view data2 = gsl_matrix_const_submatrix(subsample, subsample->size1 / 2, 0, subsample->size1 / 2, subsample->size2);
+		
+				// remains to make symmetric
+				double newval = kernelTheta(&data1.matrix) * kernelTheta(&data2.matrix);
+				gsl_vector_set(resamplingResults, b++, newval);
+
+			} while (gsl_combination_next(cmb) == GSL_SUCCESS);
+			gsl_combination_free(cmb);
+		}
+		else {
+			size_t * indices = malloc(m * sizeof(size_t));
+			for (size_t b = 0; b < B; b++) {
+				sampleWithoutReplacement(n, m, indices, r);
+				for (size_t i = 0; i < (unsigned int)m; i++) {
+					for (size_t j = 0; j < (unsigned int)d; j++) gsl_matrix_set(subsample, i, j, gsl_matrix_get(data, indices[i], j));
+				}
+				double newval = kernel(subsample);
+				gsl_vector_set(resamplingResults, b, newval);
+			}
+			free(indices);
+		}
+		double mean = gsl_stats_mean(
+			resamplingResults->data,
+			resamplingResults->stride,
+			resamplingResults->size
+		);
+
+
+
+	}
+
 }
