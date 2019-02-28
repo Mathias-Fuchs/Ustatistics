@@ -9,32 +9,13 @@
 #include <limits.h>
 #include <stdio.h>
 
-static inline void sampleWithoutReplacement(const size_t populationSize, const size_t sampleSize, size_t * subsample, gsl_rng * r) {
-	// todo: replace rand() with drawing from gsl_rng
-	// this code is much better than the old one ...
-	
-	int min = 0;
-	int x = sampleSize;
-	size_t rr,i=x;
-	while (i--) {
-		rr=populationSize-min-i;
-		subsample[i]=min+=(rr ? rand()%rr : 0);
-		min++;
-	}
-
-	// omit the following if the kernel can supposed to be symmetric
-	while (x>1) {
-		rr= subsample[i=rand()%x--];
-		subsample[i]= subsample[x];
-		subsample[x]=rr;
-	}
-}
-
 // struct to keep track of whether an unsigned int is beyond the bounds
 typedef struct {
 	unsigned int i;
 	int isInfty;
 } rr;
+
+
 
 // binomialCoefficient unless second entry indicates it's too big
 static rr binomialCoefficient(size_t n, size_t k) {
@@ -54,6 +35,13 @@ static rr binomialCoefficient(size_t n, size_t k) {
 	b.isInfty = 0;
 	return b;
 }
+
+
+static inline void sampleWithoutReplacement(const size_t populationSize, const size_t sampleSize, size_t * subsample, gsl_rng * r) {
+	// needs to be rewritten.
+}
+
+
 
 // number of ordered draws without replacement  unless second entry indicates it's too big. Equals binomial coefficient times factorial of k as long as defined.
 static rr drawWithoutReplacementInOrder(size_t n, size_t k) {
@@ -262,8 +250,10 @@ double U(
 		// one could also compute whether all pairs of disjoint m-subsets of 1...n are few enough to iterate through.
 		size_t* indices = malloc(2 * m * sizeof(size_t));
 		for (int b = 0; b < B; b++) {
-			sampleWithoutReplacement(n, 2 * m, indices, r);
+			sampleWithoutReplacement(3, 2 * m, indices, r);
 			for (size_t i = 0; i < (unsigned int) (2 * m); i++) {
+				int iii = indices[0];
+				int jjj = indices[1];
 				for (size_t j = 0; j < (unsigned int) d; j++) gsl_matrix_set(subsample, i, j, gsl_matrix_get(data, indices[i], j));
 			}
 			int k = indices[0];
@@ -274,6 +264,7 @@ double U(
 			double k2 = kernel(&data2.matrix);
 			double newval =  k1 * k2;
 			gsl_vector_set(resamplingResults, b, newval);
+			fprintf(stdout, "%f ", newval);
 		}
 		free(indices);
 		gsl_matrix_free(subsample);
