@@ -10,8 +10,8 @@ double kern(const gsl_matrix* data) {
 int main() {
 	gsl_rng* r = gsl_rng_alloc(gsl_rng_taus2);
 	gsl_rng_set(r, 1234);
-	size_t B = 1e7;
-	int n = 200;
+	size_t B = 1e5;
+	int n = 10000;
 	gsl_matrix* data = gsl_matrix_alloc(n, 1);
 	if (n == 10) {
 	// standard example
