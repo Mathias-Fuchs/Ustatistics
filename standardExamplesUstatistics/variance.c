@@ -10,18 +10,26 @@ double kern(const gsl_matrix* data) {
 int main() {
 	gsl_rng* r = gsl_rng_alloc(gsl_rng_taus2);
 	gsl_rng_set(r, 1234);
-	size_t B = 1e4;
-	gsl_matrix* data = gsl_matrix_alloc(10, 1);
-	gsl_matrix_set(data, 0, 0, 2.0);
-	gsl_matrix_set(data, 1, 0, 2.0);
-	gsl_matrix_set(data, 2, 0, 4.0);
-	gsl_matrix_set(data, 3, 0, 6.0);
-	gsl_matrix_set(data, 4, 0, 2.0);
-	gsl_matrix_set(data, 5, 0, 6.0);
-	gsl_matrix_set(data, 6, 0, 4.0);
-	gsl_matrix_set(data, 7, 0, 5.0);
-	gsl_matrix_set(data, 8, 0, 4.0);
-	gsl_matrix_set(data, 9, 0, 6.0);
+	size_t B = 1e7;
+	int n = 200;
+	gsl_matrix* data = gsl_matrix_alloc(n, 1);
+	if (n == 10) {
+	// standard example
+		gsl_matrix_set(data, 0, 0, 2.0);
+		gsl_matrix_set(data, 1, 0, 2.0);
+		gsl_matrix_set(data, 2, 0, 4.0);
+		gsl_matrix_set(data, 3, 0, 6.0);
+		gsl_matrix_set(data, 4, 0, 2.0);
+		gsl_matrix_set(data, 5, 0, 6.0);
+		gsl_matrix_set(data, 6, 0, 4.0);
+		gsl_matrix_set(data, 7, 0, 5.0);
+		gsl_matrix_set(data, 8, 0, 4.0);
+		gsl_matrix_set(data, 9, 0, 6.0);
+	}
+	else {
+		for (int j = 0; j < n; j++) gsl_matrix_set(data, j, 0, (double)gsl_rng_uniform_int(r, 6));
+	}
+	
 
 	double computationConfIntLower, computationConfIntUpper, thetaConfIntLower, thetaConfIntUpper;
 	double estimatedMean = U(
