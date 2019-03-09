@@ -1,3 +1,19 @@
+// this file reproduces the confidence interval for the population variance
+// in R, it is obtained by
+/*
+
+> require(ConfIntVariance)
+> varwci(c(2, 2, 4, 6, 2, 6, 4, 5, 4, 6))
+[1] 1.290407 4.242927
+attr(,"point.estimator")
+[1] 2.766667
+attr(,"conf.level")
+[1] 0.95
+attr(,"var.SampleVariance")
+[1] 0.425873
+*/
+
+
 #include "U.h"
 #include <gsl/gsl_matrix.h>
 
@@ -29,7 +45,6 @@ int main() {
 	else {
 		for (int j = 0; j < n; j++) gsl_matrix_set(data, j, 0, (double)gsl_rng_uniform_int(r, 6));
 	}
-	
 
 	double computationConfIntLower, computationConfIntUpper, thetaConfIntLower, thetaConfIntUpper;
 	double estimatedMean = U(

@@ -1,3 +1,27 @@
+
+
+
+// executing this file reproduces the t-test's confidence interval.
+// For the particular data example  2 2 4 6 2 6 4 5 4 6, the R output is:
+
+
+
+/* t.test(c(2, 2, 4, 6, 2, 6, 4, 5, 4, 6)) */
+
+/* 	One Sample t-test */
+
+/* data:   c(2, 2, 4, 6, 2, 6, 4, 5, 4, 6) */
+/* t = 7.7948, df = 9, p-value = 2.723e-05 */
+/* alternative hypothesis: true mean is not equal to 0 */
+/* 95 percent confidence interval: */
+/*  2.910125 5.289875 */
+/* sample estimates: */
+/* mean of x  */
+/*       4.1  */
+
+
+
+
 #include "U.h"
 #include <gsl/gsl_matrix.h>
 
