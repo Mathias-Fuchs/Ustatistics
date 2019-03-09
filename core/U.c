@@ -46,12 +46,12 @@ static rr binomialCoefficient(size_t n, size_t k) {
 static inline void sampleWithoutReplacement(const size_t populationSize, const size_t sampleSize, size_t * subsample, gsl_rng * r) {
 	if (sampleSize > populationSize) { fprintf(stderr, "sampling impossible"); exit(1); }
 	if (sampleSize == populationSize) {
-		for (int i = 0; i < sampleSize; i++) subsample[i] = i;
+		for (unsigned int i = 0; i < sampleSize; i++) subsample[i] = i;
 		return;
 	}
 	sampleWithoutReplacement(populationSize - 1, sampleSize, subsample, r);
 	int u = gsl_rng_uniform_int(r, populationSize);
-	for (int i = 0; i < sampleSize; i++)  subsample[i] += (subsample[i] >= u) ? 1 : 0;
+	for (unsigned int i = 0; i < sampleSize; i++)  subsample[i] += (subsample[i] >= u) ? 1 : 0;
 
 	// shuffle the subsample by swapping each array entry with a random one
 	for (int i = sampleSize - 1; i >= 0; --i) {
@@ -276,12 +276,12 @@ double U(
 		for (int b = 0; b < B; b++) {
 			sampleWithoutReplacement(n, 2 * m, indices, r);
 			for (size_t i = 0; i < (unsigned int)(2 * m); i++) {
-				int iii = indices[0];
-				int jjj = indices[1];
+//				int iii = indices[0];
+//				int jjj = indices[1];
 				for (size_t j = 0; j < (unsigned int)d; j++) gsl_matrix_set(subsample, i, j, gsl_matrix_get(data, indices[i], j));
 			}
-			int k = indices[0];
-			int l = indices[1];
+//			int k = indices[0];
+//			int l = indices[1];
 			gsl_matrix_const_view data1 = gsl_matrix_const_submatrix(subsample, 0, 0, subsample->size1 / 2, subsample->size2);
 			gsl_matrix_const_view data2 = gsl_matrix_const_submatrix(subsample, subsample->size1 / 2, 0, subsample->size1 / 2, subsample->size2);
 			double k1 = kernel(&data1.matrix);
