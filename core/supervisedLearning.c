@@ -27,7 +27,7 @@ void analyzeDataset(const gsl_matrix* X, const gsl_vector* y, size_t B) {
 	workspaceInit(3);
 
 	for (size_t g = (n - 2) / 4; g < (n - 2) / 2; g++) {
-		fprintf(stdout, "learning set size: %i.\n", g);
+		fprintf(stdout, "learning set size: %i.\n", (int) g);
 		double computationConfIntLower, computationConfIntUpper, thetaConfIntLower, thetaConfIntUpper;
 		double estimatedMean = U(
 			data, B, 1, r, &kernelTheta, &computationConfIntLower, &computationConfIntUpper, &thetaConfIntLower, &thetaConfIntUpper);
