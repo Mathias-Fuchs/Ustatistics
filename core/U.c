@@ -163,7 +163,7 @@ double U(
 		Usquared = mean * mean;
 		UsquaredLower = mean * mean;
 		UsquaredUpper = mean * mean;
-	}
+	} 
 	else {
 		double reSampleSd = gsl_stats_sd_m(
 			resamplingResults->data,
@@ -171,6 +171,36 @@ double U(
 			resamplingResults->size,
 			mean
 		);
+		
+		double reSampleVar = gsl_stats_variance_m(
+			resamplingResults->data,
+			resamplingResults->stride,
+			resamplingResults->size,
+			mean	
+		);
+
+		// have to be careful here to use sd = 1 because we just want the
+		// empirical central third moment, not the empirical standardized and
+		// centralized third moment.
+		double reSampleSkewness = gsl_stats_skew_m_sd(
+			resamplingResults->data,
+			resamplingResults->stride,
+			resamplingResults->size,
+			mean,
+			1.0
+			);
+
+		// same remark applies ... be careful to take sd =1
+		// also, this function sillily subtracts three ....
+		double reSampleKurtosis = gsl_stats_kurtosis_m_sd(
+			resamplingResults->data,
+			resamplingResults->stride,
+			resamplingResults->size,
+			mean,
+			1.0
+			);
+		
+		
 		double df = (double)(B - 1); // degrees of freedom in the estimation of the mean of the resampling results
 		double t = gsl_cdf_tdist_Pinv(1.0 - 0.05 / 2.0, df);
 
@@ -189,46 +219,21 @@ double U(
 		fprintf(stdout, "To achieve a relative precision of 1e-2, %i iterations are needed instead of %i,\n", (int)Brequired, (int)B);
 		fprintf(stdout, "i.e., %f as many.\n", Brequired / (float)B);
 
-		double* N = calloc(4 * B, sizeof(double));
-		if (!N) { fprintf(stderr, "Out of memory.\n"); exit(1); }
-		for (size_t i = 0; i < B; i++) N[i + B * 0] = (i ? N[i - 1 + B * 0] : 0) + gsl_vector_get(resamplingResults, i);
-		for (size_t i = 1; i < B; i++) for (int j = 1; j < 4; j++) N[i + B * j] = gsl_vector_get(resamplingResults, i) * N[i - 1 + B * (j - 1)] + N[i - 1 + B * j];
 
-#ifdef codeToCheckCorrectness
-		// old code to check the sum of all products of distinct pairs and triples
+		double estimatedSquareOfMean =  mean * mean - reSampleVar /(double) B;
 
-		double cumsum = 0, G = 0, GG = 0, GGG = 0, H = 0;
-		for (int i = 1; i < B; i++) {
-			cumsum += resamplingResults->data[i - 1]; // one needs to take the preceding value
-			GG += resamplingResults->data[i] * cumsum / (double)B / (double)(B - 1) * 2.0;
-		}
+		double y1 = mean, y2 = reSampleVar, y3 = reSampleSkewness, y4 = reSampleKurtosis;
+		double nn = (double) n;
 
-		for (int i = 0; i < B - 1; i++) {
-			for (int j = i + 1; j < B; j++) {
-				GGG += gsl_vector_get(resamplingResults, i) * gsl_vector_get(resamplingResults, j) / (double)B / (double)(B - 1) * 2.0;
-			}
-		}
 
-		for (int i = 0; i < B - 2; i++) {
-			for (int j = i + 1; j < B - 1; j++) {
-				for (int k = j + 1; k < B; k++) {
-					H +=
-						resamplingResults->data[i] * resamplingResults->data[j] * resamplingResults->data[k];
-				}
-			}
-		}
-#endif
-
-		double sumOfProductsOfDistinctPairs = N[B - 1 + B];
-		// double sumOfProductsOfDistinctTriples = N[B - 1 + B * 2];
-		double sumOfProductsOfDistinctQuadruples = N[B - 1 + B * 3];
-		free(N);
-
-		double EstimatedSquareOfMean = sumOfProductsOfDistinctPairs / (double)B / (double)(B - 1) * 2.0;
-		double EstimatedFourthPowerOfMean = sumOfProductsOfDistinctQuadruples / (double)B / (double)(B - 1) / (double)(B - 2) / (double)(B - 3) * 24.0;
 
 		double K = EstimatedSquareOfMean * EstimatedSquareOfMean - EstimatedFourthPowerOfMean;
 
+// slicker version:
+// could also get Usquare as the best estimator of the square of the mean, namely the square of the sample mean minus the sample variance divided by n
+// and K as the variance of that thing, by taking its square and subtracting the estimated fourth power of the mean
+		double KK = gsl_pow_4(y1) + (-6.0/nn)* gsl_pow_2(y1) * y2 + (-1.0/2.0/nn -3.0/2.0/(nn-2.0) + 2.0/(nn-3.0)) * gsl_pow_2(y2) + (-8.0/(nn-1.0) + 8.0/(nn-2.0)) * y1 * y3 + (-3.0/(nn-1.0) + 6.0/(nn-2.0) -3.0/(nn-3.0)) * y4 - 9.0/(nn-1.0) + 18.0/(nn-2.0) - 9.0/(nn-3.0);
+		
 		// the best estimator for the square of the actual U-statistic
 		Usquared = EstimatedSquareOfMean;
 
@@ -237,8 +242,8 @@ double U(
 		UsquaredUpper = EstimatedSquareOfMean + t * sqrt(K);
 	}
 
-#define doanyway
-#ifdef doanyway
+#define computeElSymAnyway
+#ifdef computeElSymAnyway
 	double* N = calloc(4 * resamplingResults->size, sizeof(double));
 	if (!N) { fprintf(stderr, "Out of memory.\n"); exit(1); }
 	for (size_t i = 0; i < resamplingResults->size; i++) N[i] = (i ? N[i - 1] : 0) + gsl_vector_get(resamplingResults, i);
@@ -249,7 +254,6 @@ double U(
 	free(N);
 
 	double EstimatedSquareOfMean = sumOfProductsOfDistinctPairs / (double)resamplingResults->size / (double)(resamplingResults->size - 1) * 2.0;
-
 #endif
 	gsl_vector_free(resamplingResults);
 	if (2 * m <= n) {
@@ -263,8 +267,6 @@ double U(
 		for (int b = 0; b < B; b++) {
 			sampleWithoutReplacement(n, 2 * m, indices, r);
 			for (size_t i = 0; i < (unsigned int)(2 * m); i++) {
-//				int iii = indices[0];
-//				int jjj = indices[1];
 				for (size_t j = 0; j < (unsigned int)d; j++) gsl_matrix_set(subsample, i, j, gsl_matrix_get(data, indices[i], j));
 			}
 //			int k = indices[0];
