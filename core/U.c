@@ -219,7 +219,6 @@ double U(
 		fprintf(stdout, "To achieve a relative precision of 1e-2, %i iterations are needed instead of %i,\n", (int)Brequired, (int)B);
 		fprintf(stdout, "i.e., %f as many.\n", Brequired / (float)B);
 
-
 		double estimatedSquareOfMean =  mean * mean - reSampleVar /(double) B;
 
 		double y1 = mean, y2 = reSampleVar, y3 = reSampleSkewness, y4 = reSampleKurtosis;
@@ -227,7 +226,7 @@ double U(
 
 
 
-		double K = EstimatedSquareOfMean * EstimatedSquareOfMean - EstimatedFourthPowerOfMean;
+		double K = gsl_pow_2(estimatedSquareOfMean) - EstimatedFourthPowerOfMean;
 
 // slicker version:
 // could also get Usquare as the best estimator of the square of the mean, namely the square of the sample mean minus the sample variance divided by n
@@ -235,11 +234,11 @@ double U(
 		double KK = gsl_pow_4(y1) + (-6.0/nn)* gsl_pow_2(y1) * y2 + (-1.0/2.0/nn -3.0/2.0/(nn-2.0) + 2.0/(nn-3.0)) * gsl_pow_2(y2) + (-8.0/(nn-1.0) + 8.0/(nn-2.0)) * y1 * y3 + (-3.0/(nn-1.0) + 6.0/(nn-2.0) -3.0/(nn-3.0)) * y4 - 9.0/(nn-1.0) + 18.0/(nn-2.0) - 9.0/(nn-3.0);
 		
 		// the best estimator for the square of the actual U-statistic
-		Usquared = EstimatedSquareOfMean;
+		Usquared = estimatedSquareOfMean;
 
 		// note that we don't need to divide K by B
-		UsquaredLower = EstimatedSquareOfMean - t * sqrt(K);
-		UsquaredUpper = EstimatedSquareOfMean + t * sqrt(K);
+		UsquaredLower = estimatedSquareOfMean - t * sqrt(K);
+		UsquaredUpper = estimatedSquareOfMean + t * sqrt(K);
 	}
 
 #define computeElSymAnyway
