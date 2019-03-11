@@ -108,7 +108,7 @@ double U(
 
 	// decide if we can generate all subsets
 	rr nrDraws = binomialCoefficient(n, m);
-	bool explicitResampling =  (nrDraws.isInfty == 0 && nrDraws.i < 1e6);
+	bool explicitResampling =  (nrDraws.isInfty == 0 && nrDraws.i < B);
 	if (explicitResampling) {
 		resamplingResults = gsl_vector_alloc(nrDraws.i);
 	}
@@ -165,6 +165,22 @@ double U(
 		UsquaredUpper = mean * mean;
 	} 
 	else {
+
+
+		double* N = calloc(4 * B, sizeof(double));
+		if (!N) { fprintf(stderr, "Out of memory.\n"); exit(1); }
+		for (size_t i = 0; i < B; i++) N[i + B * 0] = (i ? N[i - 1 + B * 0] : 0) + gsl_vector_get(resamplingResults, i);
+		for (size_t i = 1; i < B; i++) for (int j = 1; j < 4; j++) N[i + B * j] = gsl_vector_get(resamplingResults, i) * N[i - 1 + B * (j - 1)] + N[i - 1 + B * j];
+
+		double sumOfProductsOfDistinctPairs = N[B - 1 + B];
+		// double sumOfProductsOfDistinctTriples = N[B - 1 + B * 2];
+		double sumOfProductsOfDistinctQuadruples = N[B - 1 + B * 3];
+		free(N);
+
+		double EstimatedSquareOfMean = sumOfProductsOfDistinctPairs / (double)B / (double)(B - 1) * 2.0;
+		double EstimatedFourthPowerOfMean = sumOfProductsOfDistinctQuadruples / (double)B / (double)(B - 1) /(double) (B-2) /(double) (B-3) * 24.0;
+
+
 		double reSampleSd = gsl_stats_sd_m(
 			resamplingResults->data,
 			resamplingResults->stride,
@@ -221,12 +237,12 @@ double U(
 
 		double estimatedSquareOfMean =  mean * mean - reSampleVar /(double) B;
 
+		double K = gsl_pow_2(estimatedSquareOfMean) - EstimatedFourthPowerOfMean;
 		double y1 = mean, y2 = reSampleVar, y3 = reSampleSkewness, y4 = reSampleKurtosis;
 		double nn = (double) n;
 
 
 
-		double K = gsl_pow_2(estimatedSquareOfMean) - EstimatedFourthPowerOfMean;
 
 // slicker version:
 // could also get Usquare as the best estimator of the square of the mean, namely the square of the sample mean minus the sample variance divided by n
