@@ -8,7 +8,7 @@
 #include <assert.h>
 #include <limits.h>
 #include <stdio.h>
-
+#include <stdbool.h>
 
 #ifdef RELEASE
 #define HAVE_INLINE
@@ -100,28 +100,23 @@ double U(
 	double* thetaConfIntLower,
 	double* thetaConfIntUpper
 ) {
-
-
-
 	size_t n = data->size1;
 	size_t d = data->size2;
-
 
 	gsl_vector * resamplingResults;
 	double Usquared, UsquaredLower, UsquaredUpper;
 
 	// decide if we can generate all subsets
 	rr nrDraws = binomialCoefficient(n, m);
-
-	if (nrDraws.isInfty == 0 && nrDraws.i < 1e6) {
+	bool explicitResampling =  (nrDraws.isInfty == 0 && nrDraws.i < 1e6);
+	if (explicitResampling) {
 		resamplingResults = gsl_vector_alloc(nrDraws.i);
 	}
 	else {
 		resamplingResults = gsl_vector_alloc(B);
 	}
 
-	if (nrDraws.isInfty == 0 && nrDraws.i < 1e6) {
-
+	if (explicitResampling) {
 		// calculate the U-statistic exactly
 		// note that we do assume the kernel is symmetric.
 
@@ -130,7 +125,8 @@ double U(
 		int b = 0;
 		do {
 			for (int i = 0; i < m; i++) {
-				for (unsigned int j = 0; j < d; j++) gsl_matrix_set(subsample, i, j, gsl_matrix_get(data, gsl_combination_data(cmb)[i], j));
+				size_t* cd = gsl_combination_data(cmb);
+				for (unsigned int j = 0; j < d; j++) gsl_matrix_set(subsample, i, j, gsl_matrix_get(data, cd[i], j));
 			}
 			double newval = kernel(subsample);
 			gsl_vector_set(resamplingResults, b++, newval);
@@ -160,7 +156,7 @@ double U(
 		resamplingResults->size
 	);
 
-	if (nrDraws.isInfty == 0 && nrDraws.i < 1e6) {
+	if (explicitResampling) {
 		fprintf(stdout, "Have calculated the exact U-statistic and its square.");
 		if (computationConfIntLower) *computationConfIntLower = mean;
 		if (computationConfIntUpper) *computationConfIntUpper = mean;
@@ -169,14 +165,12 @@ double U(
 		UsquaredUpper = mean * mean;
 	}
 	else {
-
 		double reSampleSd = gsl_stats_sd_m(
 			resamplingResults->data,
 			resamplingResults->stride,
 			resamplingResults->size,
 			mean
 		);
-
 		double df = (double)(B - 1); // degrees of freedom in the estimation of the mean of the resampling results
 		double t = gsl_cdf_tdist_Pinv(1.0 - 0.05 / 2.0, df);
 
@@ -194,7 +188,6 @@ double U(
 
 		fprintf(stdout, "To achieve a relative precision of 1e-2, %i iterations are needed instead of %i,\n", (int)Brequired, (int)B);
 		fprintf(stdout, "i.e., %f as many.\n", Brequired / (float)B);
-
 
 		double* N = calloc(4 * B, sizeof(double));
 		if (!N) { fprintf(stderr, "Out of memory.\n"); exit(1); }
@@ -222,8 +215,8 @@ double U(
 					H +=
 						resamplingResults->data[i] * resamplingResults->data[j] * resamplingResults->data[k];
 				}
-	}
-}
+			}
+		}
 #endif
 
 		double sumOfProductsOfDistinctPairs = N[B - 1 + B];
@@ -244,7 +237,6 @@ double U(
 		UsquaredUpper = EstimatedSquareOfMean + t * sqrt(K);
 	}
 
-
 #define doanyway
 #ifdef doanyway
 	double* N = calloc(4 * resamplingResults->size, sizeof(double));
@@ -260,13 +252,8 @@ double U(
 
 #endif
 	gsl_vector_free(resamplingResults);
-
-
-
 	if (2 * m <= n) {
 		// in that case we prepare for the variance computation
-
-
 		// now try to estimate the population variance of the U-statistic in case this is possible
 		gsl_matrix* subsample = gsl_matrix_alloc(2 * m, d);
 		resamplingResults = gsl_vector_alloc(B);
@@ -307,7 +294,6 @@ double U(
 			estimatorThetaSquared
 		);
 		gsl_vector_free(resamplingResults);
-
 
 		double df = (double)(B - 1); // degrees of freedom in the estimation of the mean of the resampling results
 		double t = gsl_cdf_tdist_Pinv(1.0 - 0.05 / 2.0, df);

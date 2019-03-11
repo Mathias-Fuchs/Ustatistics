@@ -12,6 +12,9 @@ add_executable(mean
 add_executable(variance
  variance.c)
 
+add_executable(centralFourthMoment
+ centralFourthMoment.c)
+
 
 target_link_libraries(mean
  Ustatisticslib
@@ -21,6 +24,12 @@ target_link_libraries(mean
 
 target_link_libraries(variance
  Ustatisticslib
+ GSL::gsl
+ GSL::gslcblas
+)
+
+target_link_libraries(centralFourthMoment
+  Ustatisticslib
  GSL::gsl
  GSL::gslcblas
 )
