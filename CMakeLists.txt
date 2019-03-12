@@ -1,4 +1,10 @@
-﻿cmake_minimum_required (VERSION 3.0.2)
+﻿
+
+
+LIST(APPEND CMAKE_MODULE_PATH "${CMAKE_SOURCE_PREFIX}")
+LIST(APPEND CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}")
+
+cmake_minimum_required (VERSION 3.0.2)
 project (Ustatistics C)
 
 if ("${CMAKE_SOURCE_DIR}" STREQUAL "${CMAKE_BINARY_DIR}")
@@ -12,7 +18,9 @@ if (WIN32)
   set(CMAKE_SHARED_LIBRARY_PREFIX "")
 endif ()
 
+
 find_package(GSL REQUIRED)
+include_directories(${GSL_INCLUDE_DIR})
 
 # ---
 # sub-projects.
