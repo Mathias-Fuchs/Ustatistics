@@ -1,11 +1,10 @@
 ﻿
-cmake_minimum_required (VERSION 3.0.2)
+cmake_minimum_required (VERSION 3.2.3)
 project (concreteDatasetExample)
 
 # includes to core Ustatistics library.
 include_directories("../core")
 find_package(GSL REQUIRED)
-
 
 # executable.
 add_executable(concreteDatasetExample
@@ -15,6 +14,7 @@ target_link_libraries(concreteDatasetExample
 	Ustatisticslib
 	GSL::gsl
 	GSL::gslcblas
+	m
 )
 
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/slump.dat  ${CMAKE_CURRENT_BINARY_DIR}/slump.dat COPYONLY)
@@ -22,3 +22,5 @@ configure_file(${CMAKE_CURRENT_SOURCE_DIR}/slumpResponse.dat  ${CMAKE_CURRENT_BI
 
 message("current source directory")
 message(${CMAKE_CURRENT_SOURCE_DIR} )
+
+set_property(TARGET concreteDatasetExample PROPERTY C_STANDARD 11)

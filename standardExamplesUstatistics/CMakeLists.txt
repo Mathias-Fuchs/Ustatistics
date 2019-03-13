@@ -1,5 +1,5 @@
 ﻿
-cmake_minimum_required (VERSION 3.0.2)
+cmake_minimum_required (VERSION 3.2.3)
 project (mean)
 project(variance)
 
@@ -20,16 +20,22 @@ target_link_libraries(mean
  Ustatisticslib
  GSL::gsl
  GSL::gslcblas
+ m
 )
 
 target_link_libraries(variance
  Ustatisticslib
  GSL::gsl
  GSL::gslcblas
+ m
 )
 
 target_link_libraries(centralFourthMoment
   Ustatisticslib
  GSL::gsl
  GSL::gslcblas
+ m
 )
+set_property(TARGET mean PROPERTY C_STANDARD 11)
+set_property(TARGET variance PROPERTY C_STANDARD 11)
+set_property(TARGET centralFourthMoment PROPERTY C_STANDARD 11)

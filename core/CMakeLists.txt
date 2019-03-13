@@ -1,4 +1,5 @@
-﻿cmake_minimum_required (VERSION 3.0.2)
+﻿
+cmake_minimum_required (VERSION 3.2.3)
 project (Ustatisticslib)
 
 # sometimes needed but usually it should be fine
@@ -13,8 +14,8 @@ add_library(Ustatisticslib
 )
 
 # no executable because this is just the core library
-
 target_link_libraries(Ustatisticslib
 	GSL::gsl
 	GSL::gslcblas
 )
+set_property(TARGET Ustatisticslib PROPERTY C_STANDARD 11)
