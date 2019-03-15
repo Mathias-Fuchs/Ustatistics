@@ -14,8 +14,12 @@ target_link_libraries(concreteDatasetExample
 	Ustatisticslib
 	GSL::gsl
 	GSL::gslcblas
+)
+if (NOT WIN32) 
+target_link_libraries(concreteDatasetExample
 	m
 )
+endif()
 
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/slump.dat  ${CMAKE_CURRENT_BINARY_DIR}/slump.dat COPYONLY)
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/slumpResponse.dat  ${CMAKE_CURRENT_BINARY_DIR}/slumpResponse.dat COPYONLY)
