@@ -16,25 +16,34 @@ add_executable(centralFourthMoment
  centralFourthMoment.c)
 
 
+if (NOT WIN32) 
+target_link_libraries(mean
+	m
+)
+target_link_libraries(variance
+	m
+)
+target_link_libraries(centralFourthMoment
+	m
+)
+endif()
+
 target_link_libraries(mean
  Ustatisticslib
  GSL::gsl
  GSL::gslcblas
- m
 )
 
 target_link_libraries(variance
  Ustatisticslib
  GSL::gsl
  GSL::gslcblas
- m
 )
 
 target_link_libraries(centralFourthMoment
   Ustatisticslib
  GSL::gsl
  GSL::gslcblas
- m
 )
 set_property(TARGET mean PROPERTY C_STANDARD 11)
 set_property(TARGET variance PROPERTY C_STANDARD 11)

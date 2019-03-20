@@ -15,6 +15,13 @@ target_link_libraries(randomGaussianExample
  Ustatisticslib # static link with core Ustatistic library.
  GSL::gsl
  GSL::gslcblas
- m
 )
+if (NOT WIN32) 
+target_link_libraries(randomGaussianExample
+	m
+)
+endif()
+
+
+
 set_property(TARGET randomGaussianExample PROPERTY C_STANDARD 11)
