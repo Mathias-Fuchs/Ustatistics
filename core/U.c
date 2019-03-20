@@ -1,4 +1,5 @@
 #include "U.h"
+#include "binomCoeff.h"
 #include <gsl/gsl_rstat.h>
 #include <gsl/gsl_statistics.h>
 #include <gsl/gsl_randist.h>
@@ -14,33 +15,6 @@
 #define HAVE_INLINE
 #define GSL_NO_BOUNDS_CHECK // etc
 #endif
-
-// struct to keep track of whether an unsigned int is beyond the bounds
-typedef struct {
-	unsigned int i;
-	int isInfty;
-} rr;
-
-
-
-// binomialCoefficient unless second entry indicates it's too big
-static rr binomialCoefficient(size_t n, size_t k) {
-	rr b;
-	if (k == 0) {
-		b.i = 1; b.isInfty = 0; return b;
-	}
-	if (k == 1) {
-		b.i = n; b.isInfty = 0; return b;
-	}
-	if (k > n / 2) return binomialCoefficient(n, n - k);
-	rr o = binomialCoefficient(n - 1, k - 1);
-	if (o.isInfty || o.i > INT_MAX / n * k) {
-		b.isInfty = 1; return b;
-	}
-	b.i = o.i * n / k;
-	b.isInfty = 0;
-	return b;
-}
 
 
 static inline void sampleWithoutReplacement(const size_t populationSize, const size_t sampleSize, size_t * subsample, gsl_rng * r) {
@@ -102,7 +76,6 @@ double U(
 ) {
 	size_t n = data->size1;
 	size_t d = data->size2;
-
 	gsl_vector * resamplingResults;
 	double Usquared, UsquaredLower, UsquaredUpper;
 
