@@ -1,7 +1,7 @@
 #include "binomCoeff.h"
 #include <limits.h>
 
-static rr binomialCoefficient(size_t n, size_t k) {
+rr binomialCoefficient(size_t n, size_t k) {
 	rr b;
 	if (k == 0) {
 		b.i = 1; b.isInfty = 0; return b;

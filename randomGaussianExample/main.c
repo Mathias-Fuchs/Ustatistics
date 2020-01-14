@@ -46,7 +46,7 @@ gsl_vector * RandomResponse(int n, gsl_rng * r) {
 }
 
 int main() {
-	size_t n = 103;
+	size_t n = 25;
 	size_t p = 3;
 	size_t B = (size_t) 1e4; // number of resamples in each iteration
 	gsl_rng * r = gsl_rng_alloc(gsl_rng_taus2);

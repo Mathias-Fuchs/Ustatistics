@@ -12,3 +12,5 @@ concrete
 *~
 /.gitignore.swp
 /enc_temp_folder
+/buildWindows
+/buildWSL

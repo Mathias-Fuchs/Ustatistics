@@ -8,4 +8,4 @@ typedef struct {
 } rr;
 
 // binomialCoefficient unless second entry indicates it's too big
-static rr binomialCoefficient(size_t n, size_t k);
+rr binomialCoefficient(size_t n, size_t k);

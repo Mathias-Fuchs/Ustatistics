@@ -1,5 +1,4 @@
-{
-  // See https://go.microsoft.com//fwlink//?linkid=834763 for more information about this file.
+﻿{
   "configurations": [
     {
       "name": "x86-Debug",
@@ -14,7 +13,8 @@
       "variables": [
         {
           "name": "CMAKE_TOOLCHAIN_FILE",
-          "value": "${env.USERPROFILE}\\source\\repos\\vcpkg\\scripts\\buildsystems\\vcpkg.cmake"
+          "value": "${env.USERPROFILE}\\source\\repos\\vcpkg\\scripts\\buildsystems\\vcpkg.cmake",
+          "type": "FILEPATH"
         }
       ]
     },
@@ -31,14 +31,16 @@
       "variables": [
         {
           "name": "CMAKE_TOOLCHAIN_FILE",
-          "value": "${env.USERPROFILE}\\source\\repos\\vcpkg\\scripts\\buildsystems\\vcpkg.cmake"
+          "value": "${env.USERPROFILE}\\source\\repos\\vcpkg\\scripts\\buildsystems\\vcpkg.cmake",
+          "type": "STRING"
         },
         {
           "name": "RELEASE",
-          "value": "1"
+          "value": "1",
+          "type": "STRING"
         }
-          ]
-        },
+      ]
+    },
     {
       "name": "x64-Debug",
       "generator": "Ninja",
@@ -52,7 +54,8 @@
       "variables": [
         {
           "name": "CMAKE_TOOLCHAIN_FILE",
-          "value": "${env.USERPROFILE}\\source\\repos\\vcpkg\\scripts\\buildsystems\\vcpkg.cmake"
+          "value": "${env.USERPROFILE}\\source\\repos\\vcpkg\\scripts\\buildsystems\\vcpkg.cmake",
+          "type": "STRING"
         }
       ]
     },
@@ -69,11 +72,13 @@
       "variables": [
         {
           "name": "CMAKE_TOOLCHAIN_FILE",
-          "value": "${env.USERPROFILE}\\source\\repos\\vcpkg\\scripts\\buildsystems\\vcpkg.cmake"
+          "value": "${env.USERPROFILE}\\source\\repos\\vcpkg\\scripts\\buildsystems\\vcpkg.cmake",
+          "type": "STRING"
         },
         {
           "name": "RELEASE",
-          "value": "1"
+          "value": "1",
+          "type": "STRING"
         }
       ]
     },
@@ -95,7 +100,8 @@
       "cmakeCommandArgs": "",
       "buildCommandArgs": "",
       "ctestCommandArgs": "",
-      "inheritEnvironments": [ "linux-x64" ]
+      "inheritEnvironments": [ "linux-x64" ],
+      "variables": []
     },
     {
       "name": "Linux-Release",
@@ -115,7 +121,8 @@
       "cmakeCommandArgs": "",
       "buildCommandArgs": "",
       "ctestCommandArgs": "",
-      "inheritEnvironments": [ "linux-x64" ]
+      "inheritEnvironments": [ "linux-x64" ],
+      "variables": []
     }
   ]
 }
