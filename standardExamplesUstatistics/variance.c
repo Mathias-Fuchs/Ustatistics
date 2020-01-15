@@ -48,7 +48,7 @@ int main() {
 
 	double computationConfIntLower, computationConfIntUpper, thetaConfIntLower, thetaConfIntUpper;
 	double estimatedMean = U(
-		data, B, 2, r, kern, &computationConfIntLower, &computationConfIntUpper, &thetaConfIntLower, &thetaConfIntUpper);
+		data, B, 2, r, kern, &computationConfIntLower, &computationConfIntUpper, &thetaConfIntLower, &thetaConfIntUpper, NULL);
 	printf("U-statistic with confidence interval for its exact computation:\n[%f %f %f]\n", computationConfIntLower, estimatedMean, computationConfIntUpper);
 	printf("U-statistic with confidence interval for the population value:\n[%f %f %f]\n", thetaConfIntLower, estimatedMean, thetaConfIntUpper);
 }

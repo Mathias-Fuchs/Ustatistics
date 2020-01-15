@@ -72,7 +72,8 @@ double U(
 	double* computationConfIntLower,
 	double* computationConfIntUpper,
 	double* thetaConfIntLower,
-	double* thetaConfIntUpper
+	double* thetaConfIntUpper,
+	double* estthetasquared
 ) {
 	size_t n = data->size1;
 	size_t d = data->size2;
@@ -241,12 +242,8 @@ double U(
 		for (int b = 0; b < B; b++) {
 			sampleWithoutReplacement(n, 2 * m, indices, r);
 			for (size_t i = 0; i < (unsigned int)(2 * m); i++) {
-				//				int iii = indices[0];
-				//				int jjj = indices[1];
 				for (size_t j = 0; j < (unsigned int)d; j++) gsl_matrix_set(subsample, i, j, gsl_matrix_get(data, indices[i], j));
 			}
-			//			int k = indices[0];
-			//			int l = indices[1];
 			gsl_matrix_const_view data1 = gsl_matrix_const_submatrix(subsample, 0, 0, subsample->size1 / 2, subsample->size2);
 			gsl_matrix_const_view data2 = gsl_matrix_const_submatrix(subsample, subsample->size1 / 2, 0, subsample->size1 / 2, subsample->size2);
 			double k1 = kernel(&data1.matrix);
@@ -271,7 +268,7 @@ double U(
 			resamplingResults->size,
 			estimatorThetaSquared
 		);
-		gsl_vector_free(resamplingResults);
+		if (estthetasquared) *estthetasquared = estimatorThetaSquared;
 
 		double df = (double)(B - 1); // degrees of freedom in the estimation of the mean of the resampling results
 		double t = gsl_cdf_tdist_Pinv(1.0 - 0.05 / 2.0, df);
@@ -282,6 +279,7 @@ double U(
 		double varianceU = Usquared - estimatorThetaSquared;
 		fprintf(stdout, "variance estimator: %f\n", varianceU);
 
+		gsl_vector_free(resamplingResults);
 		// Let's try to compute how confident we can by into the computation accuracy of the variance estimator
 		double varianceUUpper = UsquaredUpper - estimatorThetaSquareLower;
 		double varianceULower = UsquaredLower - estimatorThetaSquareUpper;

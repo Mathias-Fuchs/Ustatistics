@@ -29,10 +29,16 @@ void analyzeDataset(const gsl_matrix* X, const gsl_vector* y, size_t B) {
 	int g = 13;
 	fprintf(stdout, "learning set size: %i.\n", (int)g);
 	double computationConfIntLower, computationConfIntUpper, thetaConfIntLower, thetaConfIntUpper;
+	double estthetasquared;
 	double estimatedMean = U(
-		data, B, g + 1, r, &kernelTheta, &computationConfIntLower, &computationConfIntUpper, &thetaConfIntLower, &thetaConfIntUpper);
-	printf("U-statistic with confidence interval for its exact computation:\n[%f %f %f]\n", computationConfIntLower, estimatedMean, computationConfIntUpper);
-	printf("U-statistic with confidence interval for the population value:\n[%f %f %f]\n", thetaConfIntLower, estimatedMean, thetaConfIntUpper);
+		data, B, g + 1, r, &kernelTheta, &computationConfIntLower, &computationConfIntUpper, &thetaConfIntLower, &thetaConfIntUpper, &estthetasquared);
+	fprintf(stdout, "U-statistic with confidence interval for its exact computation:\n[%f %f %f]\n", computationConfIntLower, estimatedMean, computationConfIntUpper);
+	fprintf(stdout, "U-statistic with confidence interval for the population value:\n[%f %f %f]\n", thetaConfIntLower, estimatedMean, thetaConfIntUpper);
+
+	double a0, b0;
+	double estimatedVarianceWithZeta1 = U(
+		data, B, 2 * g + 1, r, &kernelOverlapOne, &a0, &b0, NULL, NULL, NULL);
+	fprintf(stdout, "The variance estimator using zeta was %f .\n", estimatedVarianceWithZeta1)- estthetasquared;
 	workspaceDel();
 	gsl_matrix_free(data);
 	gsl_rng_free(r);

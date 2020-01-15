@@ -62,9 +62,9 @@ int main() {
 		size_t n = 30;
 		size_t p = 3;
 #ifdef _DEBUG
-		size_t B = (size_t)1e5; // number of resamples in each iteration
+		size_t B = (size_t)1e4; // number of resamples in each iteration
 #else 
-		size_t B = 1e7;
+		size_t B = 1e6;
 #endif
 		gsl_rng* r = gsl_rng_alloc(gsl_rng_taus2);
 		gsl_rng_set(r, llrand());

@@ -12,5 +12,6 @@ double U(
 	double* computationConfIntLower,
 	double* computationConfIntUpper,
 	double* thetaConfIntLower,
-	double* thetaConfIntUpper
+	double* thetaConfIntUpper,
+	double* estthetasquared
 	);

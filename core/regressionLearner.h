@@ -9,3 +9,4 @@ void workspaceDel();
 /*   (Xtest * (Xlearn^t Xlearn)^(-1) *  Xlearn ^t * Ylearn - Ytest )^2 */
 double kernelTheta(const gsl_matrix * data);
 double kernelForThetaSquared(const gsl_matrix * data);
+double kernelOverlapOne(const gsl_matrix* data);
