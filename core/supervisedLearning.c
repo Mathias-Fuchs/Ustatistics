@@ -22,18 +22,17 @@ void analyzeDataset(const gsl_matrix* X, const gsl_vector* y, size_t B) {
 	gsl_vector_memcpy(&Yv.vector, y);
 
 	int seed = 1234;
-	gsl_rng * r = gsl_rng_alloc(gsl_rng_taus2);
+	gsl_rng* r = gsl_rng_alloc(gsl_rng_taus2);
 	gsl_rng_set(r, seed);
 	workspaceInit(3);
 
-	for (size_t g = (n - 2) / 4; g < (n - 2) / 2; g++) {
-		fprintf(stdout, "learning set size: %i.\n", (int) g);
-		double computationConfIntLower, computationConfIntUpper, thetaConfIntLower, thetaConfIntUpper;
-		double estimatedMean = U(
-			data, B, 1, r, &kernelTheta, &computationConfIntLower, &computationConfIntUpper, &thetaConfIntLower, &thetaConfIntUpper);
-		printf("U-statistic with confidence interval for its exact computation:\n[%f %f %f]\n", computationConfIntLower, estimatedMean, computationConfIntUpper);
-		printf("U-statistic with confidence interval for the population value:\n[%f %f %f]\n", thetaConfIntLower, estimatedMean, thetaConfIntUpper);
-	}
+	int g = 13;
+	fprintf(stdout, "learning set size: %i.\n", (int)g);
+	double computationConfIntLower, computationConfIntUpper, thetaConfIntLower, thetaConfIntUpper;
+	double estimatedMean = U(
+		data, B, g + 1, r, &kernelTheta, &computationConfIntLower, &computationConfIntUpper, &thetaConfIntLower, &thetaConfIntUpper);
+	printf("U-statistic with confidence interval for its exact computation:\n[%f %f %f]\n", computationConfIntLower, estimatedMean, computationConfIntUpper);
+	printf("U-statistic with confidence interval for the population value:\n[%f %f %f]\n", thetaConfIntLower, estimatedMean, thetaConfIntUpper);
 	workspaceDel();
 	gsl_matrix_free(data);
 	gsl_rng_free(r);

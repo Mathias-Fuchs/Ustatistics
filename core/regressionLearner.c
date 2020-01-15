@@ -45,6 +45,7 @@ void workspaceDel() {
 }
 
 static inline double meanSquareLoss(double y1, double y2) { return gsl_pow_2(y1 - y2); }
+static inline double boundedMeanSquareLoss(double y1, double y2) { return atan((y1 - y2) * (y1 - y2)) * 2.0 / M_PI; }
 
 // inversion of symmetric 3-by-3-matrix
 static inline void inv2inPlace(const gsl_matrix * m, gsl_matrix* result) {
@@ -105,7 +106,7 @@ double kernelTheta(const gsl_matrix * data) {
 	//printf("true %f predicted %f difference %f \n", ytest, ypredicted, ytest - ypredicted);
 	//xprintf("%f\n", gsl_pow_2(ypredicted - ytest));
 
-	return meanSquareLoss(ypredicted, testY);
+	return boundedMeanSquareLoss(ypredicted, testY);
 }
 
 // remains to make symmetric

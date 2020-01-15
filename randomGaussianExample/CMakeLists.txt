@@ -18,7 +18,7 @@ target_link_libraries(randomGaussianExample
 )
 if (NOT WIN32) 
 target_link_libraries(randomGaussianExample
-	m
+	# m ## only in linux
 )
 endif()
 

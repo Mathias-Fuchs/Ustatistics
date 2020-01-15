@@ -17,7 +17,7 @@ target_link_libraries(concreteDatasetExample
 )
 if (NOT WIN32) 
 target_link_libraries(concreteDatasetExample
-	m
+	# m ## only in linux
 )
 endif()
 

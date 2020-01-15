@@ -17,7 +17,7 @@
 #endif
 
 
-static inline void sampleWithoutReplacement(const size_t populationSize, const size_t sampleSize, size_t * subsample, gsl_rng * r) {
+static inline void sampleWithoutReplacement(const size_t populationSize, const size_t sampleSize, size_t* subsample, gsl_rng* r) {
 	if (sampleSize > populationSize) { fprintf(stderr, "sampling impossible"); exit(1); }
 	if (sampleSize == populationSize) {
 		for (unsigned int i = 0; i < sampleSize; i++) subsample[i] = i;
@@ -68,7 +68,7 @@ double U(
 	const size_t B,
 	const int m,
 	gsl_rng* r,
-	double(*kernel)(const gsl_matrix *),
+	double(*kernel)(const gsl_matrix*),
 	double* computationConfIntLower,
 	double* computationConfIntUpper,
 	double* thetaConfIntLower,
@@ -76,12 +76,12 @@ double U(
 ) {
 	size_t n = data->size1;
 	size_t d = data->size2;
-	gsl_vector * resamplingResults;
+	gsl_vector* resamplingResults;
 	double Usquared, UsquaredLower, UsquaredUpper;
 
 	// decide if we can generate all subsets
 	rr nrDraws = binomialCoefficient(n, m);
-	bool explicitResampling =  (nrDraws.isInfty == 0 && nrDraws.i < 1e6);
+	bool explicitResampling = (nrDraws.isInfty == 0 && nrDraws.i < 1e6);
 	if (explicitResampling) {
 		resamplingResults = gsl_vector_alloc(nrDraws.i);
 	}
@@ -94,7 +94,7 @@ double U(
 		// note that we do assume the kernel is symmetric.
 
 		gsl_combination* cmb = gsl_combination_calloc(n, m);
-		gsl_matrix * subsample = gsl_matrix_alloc(m, d);
+		gsl_matrix* subsample = gsl_matrix_alloc(m, d);
 		int b = 0;
 		do {
 			for (int i = 0; i < m; i++) {
@@ -102,6 +102,7 @@ double U(
 				for (unsigned int j = 0; j < d; j++) gsl_matrix_set(subsample, i, j, gsl_matrix_get(data, cd[i], j));
 			}
 			double newval = kernel(subsample);
+			//			fprintf(stdout, "kernel evaluation: %f \n", newval);
 			gsl_vector_set(resamplingResults, b++, newval);
 
 		} while (gsl_combination_next(cmb) == GSL_SUCCESS);
@@ -109,7 +110,7 @@ double U(
 		gsl_combination_free(cmb);
 	}
 	else {
-		size_t * indices = malloc(m * sizeof(size_t));
+		size_t* indices = malloc(m * sizeof(size_t));
 		gsl_matrix* subsample = gsl_matrix_alloc(m, d);
 		for (size_t b = 0; b < B; b++) {
 			sampleWithoutReplacement(n, m, indices, r);
@@ -117,6 +118,7 @@ double U(
 				for (size_t j = 0; j < (unsigned int)d; j++) gsl_matrix_set(subsample, i, j, gsl_matrix_get(data, indices[i], j));
 			}
 			double newval = kernel(subsample);
+			//			fprintf(stdout, "kernel evaluation: %f, mean %f \n", newval, gsl_stats_mean(resamplingResults->data, resamplingResults->stride, b));
 			gsl_vector_set(resamplingResults, b, newval);
 		}
 		gsl_matrix_free(subsample);
@@ -144,6 +146,10 @@ double U(
 			resamplingResults->size,
 			mean
 		);
+		fprintf(stdout, "In the computation of the U-statistic, a precision of %f has been achieved. This is a relative precision of %f.\n", reSampleSd / sqrt((double)B)
+			, reSampleSd / sqrt((double)B) / mean);
+
+
 		double df = (double)(B - 1); // degrees of freedom in the estimation of the mean of the resampling results
 		double t = gsl_cdf_tdist_Pinv(1.0 - 0.05 / 2.0, df);
 
@@ -154,12 +160,12 @@ double U(
 		if (computationConfIntLower) *computationConfIntLower = confIntLower;
 		if (computationConfIntUpper) *computationConfIntUpper = confIntUpper;
 
-		double precision = mean / 1e2;
+		double precision = mean / 1e3;
 
 		// we want t * reSampleSd / sqrt(B) == precision, so (which is the standard sample size calculation)
 		float Brequired = (float)(t * t * reSampleSd * reSampleSd / precision / precision);
 
-		fprintf(stdout, "To achieve a relative precision of 1e-2, %i iterations are needed instead of %i,\n", (int)Brequired, (int)B);
+		fprintf(stdout, "To achieve a relative precision of 1e-3, %i iterations are needed instead of %i,\n", (int)Brequired, (int)B);
 		fprintf(stdout, "i.e., %f as many.\n", Brequired / (float)B);
 
 		double* N = calloc(4 * B, sizeof(double));
@@ -199,7 +205,6 @@ double U(
 
 		double EstimatedSquareOfMean = sumOfProductsOfDistinctPairs / (double)B / (double)(B - 1) * 2.0;
 		double EstimatedFourthPowerOfMean = sumOfProductsOfDistinctQuadruples / (double)B / (double)(B - 1) / (double)(B - 2) / (double)(B - 3) * 24.0;
-
 		double K = EstimatedSquareOfMean * EstimatedSquareOfMean - EstimatedFourthPowerOfMean;
 
 		// the best estimator for the square of the actual U-statistic
@@ -236,12 +241,12 @@ double U(
 		for (int b = 0; b < B; b++) {
 			sampleWithoutReplacement(n, 2 * m, indices, r);
 			for (size_t i = 0; i < (unsigned int)(2 * m); i++) {
-//				int iii = indices[0];
-//				int jjj = indices[1];
+				//				int iii = indices[0];
+				//				int jjj = indices[1];
 				for (size_t j = 0; j < (unsigned int)d; j++) gsl_matrix_set(subsample, i, j, gsl_matrix_get(data, indices[i], j));
 			}
-//			int k = indices[0];
-//			int l = indices[1];
+			//			int k = indices[0];
+			//			int l = indices[1];
 			gsl_matrix_const_view data1 = gsl_matrix_const_submatrix(subsample, 0, 0, subsample->size1 / 2, subsample->size2);
 			gsl_matrix_const_view data2 = gsl_matrix_const_submatrix(subsample, subsample->size1 / 2, 0, subsample->size1 / 2, subsample->size2);
 			double k1 = kernel(&data1.matrix);
@@ -275,6 +280,7 @@ double U(
 
 		// the estimated variance of the U-statistic
 		double varianceU = Usquared - estimatorThetaSquared;
+		fprintf(stdout, "variance estimator: %f\n", varianceU);
 
 		// Let's try to compute how confident we can by into the computation accuracy of the variance estimator
 		double varianceUUpper = UsquaredUpper - estimatorThetaSquareLower;
@@ -283,6 +289,7 @@ double U(
 		// now compute the confidence interval for the U-statistic itself, the most interesting confidence interval.
 		// should yield the t-test confidence interval
 		double tt = gsl_cdf_tdist_Pinv(1.0 - 0.05 / 2.0, (double)(n - 1));
+
 		if (varianceU > 0) {
 			double conservativeSd = sqrt(varianceU);
 			// these values should be close to what the function t.test outputs for the 95% confidence interval in the one-sample estimation of the mean.

@@ -20,6 +20,6 @@ U.c
 target_link_libraries(Ustatisticslib
 	GSL::gsl
 	GSL::gslcblas
-	m
+	# m ## only in linux
 )
 set_property(TARGET Ustatisticslib PROPERTY C_STANDARD 11)
