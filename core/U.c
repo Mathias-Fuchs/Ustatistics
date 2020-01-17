@@ -58,12 +58,7 @@ static rr drawWithoutReplacementInOrder(size_t n, size_t k) {
 
 
 
-/* computes a U-statistic of degree m by resampling B times */
-// compute two confidence intervals: one to express the certainty about the approximation of the true U-statistic by  a finite sample,
-// and one to express how well the true U-statistic approximates its estimation target.
-// Finally, these two are combined into one confidence interval.
-
-double U(
+double Upure(
 	const gsl_matrix* data,
 	const size_t B,
 	const int m,
@@ -71,10 +66,7 @@ double U(
 	double(*kernel)(const gsl_matrix*),
 	double* computationConfIntLower,
 	double* computationConfIntUpper,
-	double* thetaConfIntLower,
-	double* thetaConfIntUpper,
-	double* estthetasquared
-) {
+	gsl_vector ** retainResamplingResults) {
 	size_t n = data->size1;
 	size_t d = data->size2;
 	gsl_vector* resamplingResults;
@@ -83,12 +75,8 @@ double U(
 	// decide if we can generate all subsets
 	rr nrDraws = binomialCoefficient(n, m);
 	bool explicitResampling = (nrDraws.isInfty == 0 && nrDraws.i < 1e6);
-	if (explicitResampling) {
-		resamplingResults = gsl_vector_alloc(nrDraws.i);
-	}
-	else {
-		resamplingResults = gsl_vector_alloc(B);
-	}
+	if (explicitResampling) resamplingResults = gsl_vector_alloc(nrDraws.i);
+	else 	resamplingResults = gsl_vector_alloc(B);
 
 	if (explicitResampling) {
 		// calculate the U-statistic exactly
@@ -168,74 +156,97 @@ double U(
 
 		fprintf(stdout, "To achieve a relative precision of 1e-3, %i iterations are needed instead of %i,\n", (int)Brequired, (int)B);
 		fprintf(stdout, "i.e., %f as many.\n", Brequired / (float)B);
+	}
+	if (!retainResamplingResults) gsl_vector_free(resamplingResults);
+	else *retainResamplingResults = resamplingResults;
+	return mean;
+}
 
-		double* N = calloc(4 * B, sizeof(double));
-		if (!N) { fprintf(stderr, "Out of memory.\n"); exit(1); }
-		for (size_t i = 0; i < B; i++) N[i + B * 0] = (i ? N[i - 1 + B * 0] : 0) + gsl_vector_get(resamplingResults, i);
-		for (size_t i = 1; i < B; i++) for (int j = 1; j < 4; j++) N[i + B * j] = gsl_vector_get(resamplingResults, i) * N[i - 1 + B * (j - 1)] + N[i - 1 + B * j];
+
+
+double U(
+	const gsl_matrix* data,
+	const size_t B,
+	const int m,
+	gsl_rng* r,
+	double(*kernel)(const gsl_matrix*),
+	double* computationConfIntLower,
+	double* computationConfIntUpper,
+	double* thetaConfIntLower,
+	double* thetaConfIntUpper,
+	double* estthetasquared
+) {
+	gsl_vector* resamplingResults;
+	double mean = Upure(data, B, m, r, kernel, computationConfIntLower, computationConfIntUpper, &resamplingResults);
+	size_t B0 = resamplingResults->size; // in case explicit resampling was done, B might have changed, whence we reset it here.
+	size_t n = data->size1;
+	size_t d = data->size2;
+	double* N = calloc(4 * B0, sizeof(double));
+	if (!N) { fprintf(stderr, "Out of memory.\n"); exit(1); }
+	for (size_t i = 0; i < B0; i++) N[i + B0 * 0] = (i ? N[i - 1 + B0 * 0] : 0) + gsl_vector_get(resamplingResults, i);
+	for (size_t i = 1; i < B0; i++) for (int j = 1; j < 4; j++) N[i + B0 * j] = gsl_vector_get(resamplingResults, i) * N[i - 1 + B0 * (j - 1)] + N[i - 1 + B0 * j];
 
 #ifdef codeToCheckCorrectness
-		// old code to check the sum of all products of distinct pairs and triples
+	// old code to check the sum of all products of distinct pairs and triples
 
-		double cumsum = 0, G = 0, GG = 0, GGG = 0, H = 0;
-		for (int i = 1; i < B; i++) {
-			cumsum += resamplingResults->data[i - 1]; // one needs to take the preceding value
-			GG += resamplingResults->data[i] * cumsum / (double)B / (double)(B - 1) * 2.0;
-		}
-
-		for (int i = 0; i < B - 1; i++) {
-			for (int j = i + 1; j < B; j++) {
-				GGG += gsl_vector_get(resamplingResults, i) * gsl_vector_get(resamplingResults, j) / (double)B / (double)(B - 1) * 2.0;
-			}
-		}
-
-		for (int i = 0; i < B - 2; i++) {
-			for (int j = i + 1; j < B - 1; j++) {
-				for (int k = j + 1; k < B; k++) {
-					H +=
-						resamplingResults->data[i] * resamplingResults->data[j] * resamplingResults->data[k];
-				}
-			}
-		}
-#endif
-
-		double sumOfProductsOfDistinctPairs = N[B - 1 + B];
-		// double sumOfProductsOfDistinctTriples = N[B - 1 + B * 2];
-		double sumOfProductsOfDistinctQuadruples = N[B - 1 + B * 3];
-		free(N);
-
-		double EstimatedSquareOfMean = sumOfProductsOfDistinctPairs / (double)B / (double)(B - 1) * 2.0;
-		double EstimatedFourthPowerOfMean = sumOfProductsOfDistinctQuadruples / (double)B / (double)(B - 1) / (double)(B - 2) / (double)(B - 3) * 24.0;
-		double K = EstimatedSquareOfMean * EstimatedSquareOfMean - EstimatedFourthPowerOfMean;
-
-		// the best estimator for the square of the actual U-statistic
-		Usquared = EstimatedSquareOfMean;
-
-		// note that we don't need to divide K by B
-		UsquaredLower = EstimatedSquareOfMean - t * sqrt(K);
-		UsquaredUpper = EstimatedSquareOfMean + t * sqrt(K);
+	double cumsum = 0, G = 0, GG = 0, GGG = 0, H = 0;
+	for (int i = 1; i < B0; i++) {
+		cumsum += resamplingResults->data[i - 1]; // one needs to take the preceding value
+		GG += resamplingResults->data[i] * cumsum / (double)B0 / (double)(B0 - 1) * 2.0;
 	}
 
-#define doanyway
+	for (int i = 0; i < B0 - 1; i++) {
+		for (int j = i + 1; j < B0; j++) {
+			GGG += gsl_vector_get(resamplingResults, i) * gsl_vector_get(resamplingResults, j) / (double)B0 / (double)(B0 - 1) * 2.0;
+		}
+	}
+
+	for (int i = 0; i < B0 - 2; i++) {
+		for (int j = i + 1; j < B0 - 1; j++) {
+			for (int k = j + 1; k < B0; k++) {
+				H +=
+					resamplingResults->data[i] * resamplingResults->data[j] * resamplingResults->data[k];
+			}
+		}
+	}
+#endif
+
+	double sumOfProductsOfDistinctPairs = N[B0 - 1 + B0];
+	// double sumOfProductsOfDistinctTriples = N[B0 - 1 + B0 * 2];
+	double sumOfProductsOfDistinctQuadruples = N[B0 - 1 + B0 * 3];
+	free(N);
+
+	double EstimatedSquareOfMean = sumOfProductsOfDistinctPairs / (double)B0 / (double)(B0 - 1) * 2.0;
+	double EstimatedFourthPowerOfMean = sumOfProductsOfDistinctQuadruples / (double)B0 / (double)(B0 - 1) / (double)(B0 - 2) / (double)(B0 - 3) * 24.0;
+	double K = EstimatedSquareOfMean * EstimatedSquareOfMean - EstimatedFourthPowerOfMean;
+	// the best estimator for the square of the actual U-statistic */
+// 				 Usquared = EstimatedSquareOfMean;
+//	     note that we don't need to divide K by B0 */
+	double df = (double)(B0 - 1); // degrees of freedom in the estimation of the mean of the resampling results
+	double t = gsl_cdf_tdist_Pinv(1.0 - 0.05 / 2.0, df);
+	double UsquaredLower = EstimatedSquareOfMean - t * sqrt(K);
+	double UsquaredUpper = EstimatedSquareOfMean + t * sqrt(K);
+
+
 #ifdef doanyway
 	double* N = calloc(4 * resamplingResults->size, sizeof(double));
 	if (!N) { fprintf(stderr, "Out of memory.\n"); exit(1); }
 	for (size_t i = 0; i < resamplingResults->size; i++) N[i] = (i ? N[i - 1] : 0) + gsl_vector_get(resamplingResults, i);
 	for (size_t i = 1; i < resamplingResults->size; i++) for (int j = 1; j < 4; j++) N[i + resamplingResults->size * j] = gsl_vector_get(resamplingResults, i) * N[i - 1 + resamplingResults->size * (j - 1)] + N[i - 1 + resamplingResults->size * j];
 	double sumOfProductsOfDistinctPairs = N[resamplingResults->size - 1 + resamplingResults->size];
-	// double sumOfProductsOfDistinctTriples = N[B - 1 + B * 2];
+	// double sumOfProductsOfDistinctTriples = N[B0 - 1 + B0 * 2];
 	double sumOfProductsOfDistinctQuadruples = N[resamplingResults->size - 1 + resamplingResults->size * 3];
 	free(N);
 
 	double EstimatedSquareOfMean = sumOfProductsOfDistinctPairs / (double)resamplingResults->size / (double)(resamplingResults->size - 1) * 2.0;
 
 #endif
-	gsl_vector_free(resamplingResults);
+
 	if (2 * m <= n) {
 		// in that case we prepare for the variance computation
 		// now try to estimate the population variance of the U-statistic in case this is possible
 		gsl_matrix* subsample = gsl_matrix_alloc(2 * m, d);
-		resamplingResults = gsl_vector_alloc(B);
+		gsl_vector* resamplingResults = gsl_vector_alloc(B);
 
 		// one could also compute whether all pairs of disjoint m-subsets of 1...n are few enough to iterate through.
 		size_t* indices = malloc(2 * m * sizeof(size_t));
@@ -276,7 +287,7 @@ double U(
 		double estimatorThetaSquareUpper = estimatorThetaSquared + t * tsSd / sqrt((double)B);
 
 		// the estimated variance of the U-statistic
-		double varianceU = Usquared - estimatorThetaSquared;
+		double varianceU = mean * mean - estimatorThetaSquared;
 		fprintf(stdout, "variance estimator: %f\n", varianceU);
 
 		gsl_vector_free(resamplingResults);
@@ -298,5 +309,6 @@ double U(
 			fprintf(stderr, "variance estimator negative, can't compute confidence interval.\n");
 		}
 	}
+	gsl_vector_free(resamplingResults);
 	return(mean);
 }

@@ -70,11 +70,10 @@ int main() {
 		gsl_rng_set(r, llrand());
 		gsl_matrix* X = RandomData(n, p, r);
 		gsl_vector* y = RandomResponse(n, r);
+		analyzeDataset(r, X, y, B);
 		gsl_rng_free(r);
-		analyzeDataset(X, y, B);
 		gsl_matrix_free(X);
 		gsl_vector_free(y);
-
 	}
 	return 0;
 }

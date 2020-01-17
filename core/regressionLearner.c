@@ -118,9 +118,8 @@ double symmetrizedKernelTheta(const gsl_matrix* data) {
 	int p = data->size2 - 1;
 	gsl_permutation* cyclicPerm = gsl_permutation_alloc(g + 1);
 	// generate a cyclic permutation that loops around by one
-	for (int j = 0; j < g + 1; j++) {
-		cyclicPerm->data[j] = (j + 1) % (g + 1);
-	}
+	for (int j = 0; j < g + 1; j++) cyclicPerm->data[j] = (j + 1) % (g + 1);
+	
 
 	gsl_matrix* datacopy = gsl_matrix_alloc(g + 1, p + 1);
 	gsl_matrix* datacopyTransposed = gsl_matrix_alloc(p + 1, g + 1);
@@ -146,7 +145,7 @@ double symmetrizedKernelTheta(const gsl_matrix* data) {
 	gsl_matrix_free(datacopy);
 	gsl_matrix_free(datacopyTransposed);
 	gsl_permutation_free(cyclicPerm);
-	fprintf(stdout, "%f \n", res);
+	// fprintf(stdout, "%f \n", res);
 	return res;
 }
 
@@ -159,7 +158,7 @@ double kernelForThetaSquared(const gsl_matrix* data) {
 	// the first half of the rows gets fed into the first gamma, and the second into the other
 	gsl_matrix_const_view data1 = gsl_matrix_const_submatrix(data, 0, 0, data->size1 / 2, data->size2);
 	gsl_matrix_const_view data2 = gsl_matrix_const_submatrix(data, data->size1 / 2, 0, data->size1 / 2, data->size2);
-	return kernelTheta(&data1.matrix) * kernelTheta(&data2.matrix);
+	return symmetrizedKernelTheta(&data1.matrix) * symmetrizedKernelTheta(&data2.matrix);
 }
 
 double kernelOverlapOne(const gsl_matrix* data) {

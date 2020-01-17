@@ -1,5 +1,10 @@
 
-
+// what the mean is for the t-test,
+// this package is for a general U-statistic.
+// So, this package allows to give confidence intervals for any U-statistic.
+// This is of particular importance for the U-statistic that arises from (a generalized form of) cross-validation in supervised learning.
+// Thus, this software uses U-statistics theory to compute confidence intervals for the error rate in supervised learning.
+// Estimating the error rate is a problem of paramount importance in Machine Learning.
 
 // executing this file reproduces the t-test's confidence interval.
 // For the particular data example  2 2 4 6 2 6 4 5 4 6, the R output is:
@@ -33,7 +38,11 @@ double kern(const gsl_matrix* data) {
 int main() {
 	gsl_rng* r = gsl_rng_alloc(gsl_rng_taus2);
 	gsl_rng_set(r, 1234);
+#ifdef _DEBUG
+	size_t B = 1e4;
+#else
 	size_t B = 1e7;
+#endif
 	gsl_matrix* data = gsl_matrix_alloc(10, 1);
 	gsl_matrix_set(data, 0, 0, 2.0);
 	gsl_matrix_set(data, 1, 0, 2.0);

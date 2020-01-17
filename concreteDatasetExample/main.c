@@ -25,6 +25,16 @@
 #include <gsl/gsl_matrix.h>
 
 
+unsigned long llrand() {
+	unsigned long r = 0;
+
+	for (int i = 0; i < 5; ++i) {
+		r = (r << 15) | (rand() & 0x7FFF);
+	}
+
+	return r & 0xFFFFFFFFFFFFFFFFULL;
+}
+
 int main() {
 
 	size_t B = 1e5; // number of resamples in each iteration
@@ -42,8 +52,9 @@ int main() {
 	gsl_vector * y = gsl_vector_alloc(103);
 	for (int i = 0; i < 103; i++) 	gsl_vector_set(y, i, gsl_matrix_get(dummy, 0, i));
 	gsl_matrix_free(dummy);
-
-	analyzeDataset(X, y, B);
+	gsl_rng * r = gsl_rng_alloc(gsl_rng_taus2);
+	gsl_rng_set(r, llrand());
+	analyzeDataset(r, X, y, B);
 
 	gsl_matrix_free(X);
 	gsl_vector_free(y);

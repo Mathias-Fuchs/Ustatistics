@@ -9,7 +9,7 @@
 #include "regressionLearner.h"
 
 
-void analyzeDataset(const gsl_matrix* X, const gsl_vector* y, size_t B) {
+void analyzeDataset(gsl_rng* r, const gsl_matrix* X, const gsl_vector* y, size_t B) {
 	assert(X->size1 == y->size);
 	size_t n = X->size1;
 	size_t p = X->size2;
@@ -21,9 +21,6 @@ void analyzeDataset(const gsl_matrix* X, const gsl_vector* y, size_t B) {
 	gsl_matrix_memcpy(&Xv.matrix, X);
 	gsl_vector_memcpy(&Yv.vector, y);
 
-	int seed = 1234;
-	gsl_rng* r = gsl_rng_alloc(gsl_rng_taus2);
-	gsl_rng_set(r, seed);
 	workspaceInit(3);
 
 	int g = 13;
@@ -41,5 +38,4 @@ void analyzeDataset(const gsl_matrix* X, const gsl_vector* y, size_t B) {
 	fprintf(stdout, "The variance estimator using zeta was %f .\n", estimatedVarianceWithZeta1)- estthetasquared;
 	workspaceDel();
 	gsl_matrix_free(data);
-	gsl_rng_free(r);
 }
