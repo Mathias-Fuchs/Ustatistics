@@ -171,10 +171,49 @@ double kernelTS(const gsl_matrix* data, void* kernel) {
 	size_t m = data->size1 / 2;
 	size_t p = data->size2;
 
-	gsl_matrix_const_view data1 = gsl_matrix_const_submatrix(data, 0, 0, m, p);
-	gsl_matrix_const_view data2 = gsl_matrix_const_submatrix(data, m, 0, m, p);
-	
-	return originalKernel(&data1.matrix, NULL) * originalKernel(&data2.matrix, NULL);
+
+	gsl_combination* cmb = gsl_combination_calloc(2 * m, m);
+	gsl_matrix* subsample1 = gsl_matrix_alloc(m, p);
+	gsl_matrix* subsample2 = gsl_matrix_alloc(m, p);
+
+	int b = 0;
+	double k = 0;
+	do {
+		int* complement = malloc(2 * m * sizeof(int));
+		int* complement2 = malloc(m * sizeof(int));
+		for (int i = 0; i < 2 * m; i++) complement[i] = i;
+		size_t* cd = gsl_combination_data(cmb);
+
+		for (int i = 0; i < m; i++) {
+			int co = cd[i];
+			complement[co] = -1;
+			for (unsigned int j = 0; j < p; j++) gsl_matrix_set(subsample1, i, j, gsl_matrix_get(data, co, j));
+		}
+
+		int zz = 0;
+		int i = 0;
+		do {if (complement[i++] != -1) complement2[zz++] = complement[i - 1];}
+			while (zz != m);
+
+		free(complement);
+		for (int i = 0; i < m; i++) {
+			for (unsigned int j = 0; j < p; j++) gsl_matrix_set(subsample2, i, j, gsl_matrix_get(data, complement2[i], j));
+		}
+
+
+		free(complement2);
+
+		k += originalKernel(subsample1, NULL) * originalKernel(subsample2, NULL);
+		b++;
+	} while (gsl_combination_next(cmb) == GSL_SUCCESS);
+	k /= (double)b;
+
+	gsl_matrix_free(subsample1);
+	gsl_matrix_free(subsample2);
+
+	gsl_combination_free(cmb);
+
+	return k;
 }
 
 
