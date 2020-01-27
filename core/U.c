@@ -63,7 +63,8 @@ double Upure(
 	const size_t B,
 	const int m,
 	gsl_rng* r,
-	double(*kernel)(const gsl_matrix*),
+	kernel_t kernel,
+	void* args, // additional arguments to be passed to the kernel
 	double* computationConfIntLower,
 	double* computationConfIntUpper,
 	gsl_vector ** retainResamplingResults) {
@@ -90,7 +91,7 @@ double Upure(
 				size_t* cd = gsl_combination_data(cmb);
 				for (unsigned int j = 0; j < d; j++) gsl_matrix_set(subsample, i, j, gsl_matrix_get(data, cd[i], j));
 			}
-			double newval = kernel(subsample);
+			double newval = kernel(subsample, args);
 			//			fprintf(stdout, "kernel evaluation: %f \n", newval);
 			gsl_vector_set(resamplingResults, b++, newval);
 
@@ -106,7 +107,7 @@ double Upure(
 			for (size_t i = 0; i < (unsigned int)m; i++) {
 				for (size_t j = 0; j < (unsigned int)d; j++) gsl_matrix_set(subsample, i, j, gsl_matrix_get(data, indices[i], j));
 			}
-			double newval = kernel(subsample);
+			double newval = kernel(subsample, args);
 			//			fprintf(stdout, "kernel evaluation: %f, mean %f \n", newval, gsl_stats_mean(resamplingResults->data, resamplingResults->stride, b));
 			gsl_vector_set(resamplingResults, b, newval);
 		}
@@ -151,7 +152,7 @@ double Upure(
 
 		double precision = mean / 1e3;
 
-		// we want t * reSampleSd / sqrt(B) == precision, so (which is the standard sample size calculation)
+		// we want qt * reSampleSd / sqrt(B) == precision, so (which is the standard sample size calculation)
 		float Brequired = (float)(t * t * reSampleSd * reSampleSd / precision / precision);
 
 		fprintf(stdout, "To achieve a relative precision of 1e-3, %i iterations are needed instead of %i,\n", (int)Brequired, (int)B);
@@ -162,6 +163,19 @@ double Upure(
 	return mean;
 }
 
+// the kernel for theta squared.
+// the original kernel is supposed to be given as a function pointer, masked as a void pointer
+double kernelTS(const gsl_matrix* data, void* kernel) {
+	
+	kernel_t originalKernel = (kernel_t)kernel;
+	size_t m = data->size1 / 2;
+	size_t p = data->size2;
+
+	gsl_matrix_const_view data1 = gsl_matrix_const_submatrix(data, 0, 0, m, p);
+	gsl_matrix_const_view data2 = gsl_matrix_const_submatrix(data, m, 0, m, p);
+	
+	return originalKernel(&data1.matrix, NULL) * originalKernel(&data2.matrix, NULL);
+}
 
 
 double U(
@@ -169,7 +183,7 @@ double U(
 	const size_t B,
 	const int m,
 	gsl_rng* r,
-	double(*kernel)(const gsl_matrix*),
+	kernel_t kernel,
 	double* computationConfIntLower,
 	double* computationConfIntUpper,
 	double* thetaConfIntLower,
@@ -177,7 +191,7 @@ double U(
 	double* estthetasquared
 ) {
 	gsl_vector* resamplingResults;
-	double mean = Upure(data, B, m, r, kernel, computationConfIntLower, computationConfIntUpper, &resamplingResults);
+	double mean = Upure(data, B, m, r, kernel, NULL, computationConfIntLower, computationConfIntUpper, &resamplingResults);
 	size_t B0 = resamplingResults->size; // in case explicit resampling was done, B might have changed, whence we reset it here.
 	size_t n = data->size1;
 	size_t d = data->size2;
@@ -221,11 +235,13 @@ double U(
 	double K = EstimatedSquareOfMean * EstimatedSquareOfMean - EstimatedFourthPowerOfMean;
 	// the best estimator for the square of the actual U-statistic */
 // 				 Usquared = EstimatedSquareOfMean;
-//	     note that we don't need to divide K by B0 */
+//	     note that we don'qt need to divide K by B0 */
 	double df = (double)(B0 - 1); // degrees of freedom in the estimation of the mean of the resampling results
-	double t = gsl_cdf_tdist_Pinv(1.0 - 0.05 / 2.0, df);
-	double UsquaredLower = EstimatedSquareOfMean - t * sqrt(K);
-	double UsquaredUpper = EstimatedSquareOfMean + t * sqrt(K);
+	
+//	the classical quantile of the t-distribution
+	double qt = gsl_cdf_tdist_Pinv(1.0 - 0.05 / 2.0, df);
+	double UsquaredLower = EstimatedSquareOfMean - qt * sqrt(K);
+	double UsquaredUpper = EstimatedSquareOfMean + qt * sqrt(K);
 
 
 #ifdef doanyway
@@ -245,46 +261,10 @@ double U(
 	if (2 * m <= n) {
 		// in that case we prepare for the variance computation
 		// now try to estimate the population variance of the U-statistic in case this is possible
-		gsl_matrix* subsample = gsl_matrix_alloc(2 * m, d);
-		gsl_vector* resamplingResults = gsl_vector_alloc(B);
 
-		// one could also compute whether all pairs of disjoint m-subsets of 1...n are few enough to iterate through.
-		size_t* indices = malloc(2 * m * sizeof(size_t));
-		for (int b = 0; b < B; b++) {
-			sampleWithoutReplacement(n, 2 * m, indices, r);
-			for (size_t i = 0; i < (unsigned int)(2 * m); i++) {
-				for (size_t j = 0; j < (unsigned int)d; j++) gsl_matrix_set(subsample, i, j, gsl_matrix_get(data, indices[i], j));
-			}
-			gsl_matrix_const_view data1 = gsl_matrix_const_submatrix(subsample, 0, 0, subsample->size1 / 2, subsample->size2);
-			gsl_matrix_const_view data2 = gsl_matrix_const_submatrix(subsample, subsample->size1 / 2, 0, subsample->size1 / 2, subsample->size2);
-			double k1 = kernel(&data1.matrix);
-			double k2 = kernel(&data2.matrix);
-			double newval = k1 * k2;
-			gsl_vector_set(resamplingResults, b, newval);
-			//		fprintf(stdout, "%f ", newval);
-		}
-		free(indices);
-		gsl_matrix_free(subsample);
-
-		// should be 16.5333 in the mean example.
-		double estimatorThetaSquared = gsl_stats_mean(
-			resamplingResults->data,
-			resamplingResults->stride,
-			resamplingResults->size
-		);
-
-		double tsSd = gsl_stats_sd_m(
-			resamplingResults->data,
-			resamplingResults->stride,
-			resamplingResults->size,
-			estimatorThetaSquared
-		);
-		if (estthetasquared) *estthetasquared = estimatorThetaSquared;
-
-		double df = (double)(B - 1); // degrees of freedom in the estimation of the mean of the resampling results
-		double t = gsl_cdf_tdist_Pinv(1.0 - 0.05 / 2.0, df);
-		double estimatorThetaSquareLower = estimatorThetaSquared - t * tsSd / sqrt((double)B);
-		double estimatorThetaSquareUpper = estimatorThetaSquared + t * tsSd / sqrt((double)B);
+		double estimatorThetaSquareLower;
+		double estimatorThetaSquareUpper;
+		double estimatorThetaSquared = Upure(data, B, 2 * m, r, &kernelTS, kernel, &estimatorThetaSquareLower, &estimatorThetaSquareUpper, NULL);
 
 		// the estimated variance of the U-statistic
 		double varianceU = mean * mean - estimatorThetaSquared;
@@ -296,12 +276,12 @@ double U(
 		double varianceULower = UsquaredLower - estimatorThetaSquareUpper;
 
 		// now compute the confidence interval for the U-statistic itself, the most interesting confidence interval.
-		// should yield the t-test confidence interval
+		// should yield the qt-test confidence interval
 		double tt = gsl_cdf_tdist_Pinv(1.0 - 0.05 / 2.0, (double)(n - 1));
 
 		if (varianceU > 0) {
 			double conservativeSd = sqrt(varianceU);
-			// these values should be close to what the function t.test outputs for the 95% confidence interval in the one-sample estimation of the mean.
+			// these values should be close to what the function qt.test outputs for the 95% confidence interval in the one-sample estimation of the mean.
 			*thetaConfIntLower = mean - tt * conservativeSd;
 			*thetaConfIntUpper = mean + tt * conservativeSd;
 		}
@@ -312,3 +292,4 @@ double U(
 	gsl_vector_free(resamplingResults);
 	return(mean);
 }
+
