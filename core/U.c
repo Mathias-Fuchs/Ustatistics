@@ -234,68 +234,6 @@ double U(
 	size_t B0 = resamplingResults->size; // in case explicit resampling was done, B might have changed, whence we reset it here.
 	size_t n = data->size1;
 	size_t d = data->size2;
-	double* N = calloc(4 * B0, sizeof(double));
-	if (!N) { fprintf(stderr, "Out of memory.\n"); exit(1); }
-	for (size_t i = 0; i < B0; i++) N[i + B0 * 0] = (i ? N[i - 1 + B0 * 0] : 0) + gsl_vector_get(resamplingResults, i);
-	for (size_t i = 1; i < B0; i++) for (int j = 1; j < 4; j++) N[i + B0 * j] = gsl_vector_get(resamplingResults, i) * N[i - 1 + B0 * (j - 1)] + N[i - 1 + B0 * j];
-
-#ifdef codeToCheckCorrectness
-	// old code to check the sum of all products of distinct pairs and triples
-
-	double cumsum = 0, G = 0, GG = 0, GGG = 0, H = 0;
-	for (int i = 1; i < B0; i++) {
-		cumsum += resamplingResults->data[i - 1]; // one needs to take the preceding value
-		GG += resamplingResults->data[i] * cumsum / (double)B0 / (double)(B0 - 1) * 2.0;
-	}
-
-	for (int i = 0; i < B0 - 1; i++) {
-		for (int j = i + 1; j < B0; j++) {
-			GGG += gsl_vector_get(resamplingResults, i) * gsl_vector_get(resamplingResults, j) / (double)B0 / (double)(B0 - 1) * 2.0;
-		}
-	}
-
-	for (int i = 0; i < B0 - 2; i++) {
-		for (int j = i + 1; j < B0 - 1; j++) {
-			for (int k = j + 1; k < B0; k++) {
-				H +=
-					resamplingResults->data[i] * resamplingResults->data[j] * resamplingResults->data[k];
-			}
-		}
-	}
-#endif
-
-	double sumOfProductsOfDistinctPairs = N[B0 - 1 + B0];
-	// double sumOfProductsOfDistinctTriples = N[B0 - 1 + B0 * 2];
-	double sumOfProductsOfDistinctQuadruples = N[B0 - 1 + B0 * 3];
-	free(N);
-
-	double EstimatedSquareOfMean = sumOfProductsOfDistinctPairs / (double)B0 / (double)(B0 - 1) * 2.0;
-	double EstimatedFourthPowerOfMean = sumOfProductsOfDistinctQuadruples / (double)B0 / (double)(B0 - 1) / (double)(B0 - 2) / (double)(B0 - 3) * 24.0;
-	double K = EstimatedSquareOfMean * EstimatedSquareOfMean - EstimatedFourthPowerOfMean;
-	// the best estimator for the square of the actual U-statistic */
-// 				 Usquared = EstimatedSquareOfMean;
-//	     note that we don'qt need to divide K by B0 */
-	double df = (double)(B0 - 1); // degrees of freedom in the estimation of the mean of the resampling results
-	
-//	the classical quantile of the t-distribution
-	double qt = gsl_cdf_tdist_Pinv(1.0 - 0.05 / 2.0, df);
-	double UsquaredLower = EstimatedSquareOfMean - qt * sqrt(K);
-	double UsquaredUpper = EstimatedSquareOfMean + qt * sqrt(K);
-
-
-#ifdef doanyway
-	double* N = calloc(4 * resamplingResults->size, sizeof(double));
-	if (!N) { fprintf(stderr, "Out of memory.\n"); exit(1); }
-	for (size_t i = 0; i < resamplingResults->size; i++) N[i] = (i ? N[i - 1] : 0) + gsl_vector_get(resamplingResults, i);
-	for (size_t i = 1; i < resamplingResults->size; i++) for (int j = 1; j < 4; j++) N[i + resamplingResults->size * j] = gsl_vector_get(resamplingResults, i) * N[i - 1 + resamplingResults->size * (j - 1)] + N[i - 1 + resamplingResults->size * j];
-	double sumOfProductsOfDistinctPairs = N[resamplingResults->size - 1 + resamplingResults->size];
-	// double sumOfProductsOfDistinctTriples = N[B0 - 1 + B0 * 2];
-	double sumOfProductsOfDistinctQuadruples = N[resamplingResults->size - 1 + resamplingResults->size * 3];
-	free(N);
-
-	double EstimatedSquareOfMean = sumOfProductsOfDistinctPairs / (double)resamplingResults->size / (double)(resamplingResults->size - 1) * 2.0;
-
-#endif
 
 	if (2 * m <= n) {
 		// in that case we prepare for the variance computation
@@ -310,10 +248,6 @@ double U(
 
 		
 		fprintf(stdout, "Variance estimator: %f\n", varianceU);
-
-		// Let's try to compute how confident we can by into the computation accuracy of the variance estimator
-		//double varianceUUpper = UsquaredUpper - estimatorThetaSquareLower;
-		//double varianceULower = UsquaredLower - estimatorThetaSquareUpper;
 
 		// now compute the confidence interval for the U-statistic itself, the most interesting confidence interval.
 		// should yield the qt-test confidence interval
