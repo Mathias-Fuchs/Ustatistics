@@ -3,6 +3,10 @@
 #include <gsl/gsl_matrix.h>
 #include <gsl/gsl_rng.h>
 
+
+// the type a kernel is of: it is a pointer to a function eating const gsl_matrix*, and outputs double
+typedef  double (*kernel_t)(const gsl_matrix*); 
+
 // full interface, comprising the computation confidence interval, and the one for theta, as well as an estimated value for the square of theta.
 
 
@@ -15,7 +19,7 @@ double U(
 	const size_t B,
 	const int m,
 	gsl_rng* r,
-	double(*kernel)(const gsl_matrix*),
+	kernel_t kernel,
 	double* computationConfIntLower,
 	double* computationConfIntUpper,
 	double* thetaConfIntLower,
@@ -28,8 +32,14 @@ double Upure(const gsl_matrix* data,
 	const size_t B,
 	const int m,
 	gsl_rng* r,
-	double(*kernel)(const gsl_matrix*),
+	kernel_t kernel,
 	double* computationConfIntLower,
 	double* computationConfIntUpper,
 	gsl_vector** retainResamplingResults
 );
+
+// kernel TS takes a kernel (which is a function that takes a const gsl_matrix* and returns a double,
+// and returns a pointer to a function that also takes a const gsl_matrix* and returns a double.
+kernel_t kernelTS(kernel_t kernel);
+
+

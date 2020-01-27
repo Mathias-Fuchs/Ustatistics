@@ -288,7 +288,7 @@ double U(
 
 		// the estimated variance of the U-statistic
 		double varianceU = mean * mean - estimatorThetaSquared;
-		fprintf(stdout, "variance estimator: %f\n", varianceU);
+		fprintf(stdout, "Variance estimator: %f\n", varianceU);
 
 		gsl_vector_free(resamplingResults);
 		// Let's try to compute how confident we can by into the computation accuracy of the variance estimator
