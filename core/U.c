@@ -268,12 +268,13 @@ double U(
 
 		// the estimated variance of the U-statistic
 		double varianceU = mean * mean - estimatorThetaSquared;
+
+		
 		fprintf(stdout, "Variance estimator: %f\n", varianceU);
 
-		gsl_vector_free(resamplingResults);
 		// Let's try to compute how confident we can by into the computation accuracy of the variance estimator
-		double varianceUUpper = UsquaredUpper - estimatorThetaSquareLower;
-		double varianceULower = UsquaredLower - estimatorThetaSquareUpper;
+		//double varianceUUpper = UsquaredUpper - estimatorThetaSquareLower;
+		//double varianceULower = UsquaredLower - estimatorThetaSquareUpper;
 
 		// now compute the confidence interval for the U-statistic itself, the most interesting confidence interval.
 		// should yield the qt-test confidence interval
