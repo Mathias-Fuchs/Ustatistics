@@ -37,7 +37,7 @@ unsigned long llrand() {
 
 int main() {
 
-	size_t B = 1e5; // number of resamples in each iteration
+	size_t B = 1e3; // number of resamples in each iteration
 
 	FILE * f = fopen("slump.dat", "rb");
 	if (!f) fprintf(stderr, "input file not found!\n");

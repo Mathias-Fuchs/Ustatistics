@@ -2,8 +2,10 @@
 cmake_minimum_required (VERSION 3.2.3)
 project (concreteDatasetExample)
 
-# includes to core Ustatistics library.
+# includes to core Ustatistics library header files locations.
 include_directories("../core")
+include_directories("../regression")
+
 find_package(GSL REQUIRED)
 
 # executable.
@@ -12,6 +14,7 @@ add_executable(concreteDatasetExample
 
 target_link_libraries(concreteDatasetExample
 	Ustatisticslib
+	regressionlib
 	GSL::gsl
 	GSL::gslcblas
 )

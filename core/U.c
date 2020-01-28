@@ -10,6 +10,7 @@
 #include <limits.h>
 #include <stdio.h>
 #include <stdbool.h>
+#include "runningStats.h"
 
 #ifdef RELEASE
 #define HAVE_INLINE
@@ -67,7 +68,8 @@ double Upure(
 	void* args, // additional arguments to be passed to the kernel
 	double* computationConfIntLower,
 	double* computationConfIntUpper,
-	gsl_vector ** retainResamplingResults) {
+	gsl_vector ** retainResamplingResults,
+	double desiredRelativePrecision) {
 	size_t n = data->size1;
 	size_t d = data->size2;
 	gsl_vector* resamplingResults;
@@ -102,6 +104,7 @@ double Upure(
 	else {
 		size_t* indices = malloc(m * sizeof(size_t));
 		gsl_matrix* subsample = gsl_matrix_alloc(m, d);
+		rs rs = rs_init();
 		for (size_t b = 0; b < B; b++) {
 			sampleWithoutReplacement(n, m, indices, r);
 			for (size_t i = 0; i < (unsigned int)m; i++) {
@@ -110,6 +113,9 @@ double Upure(
 			double newval = kernel(subsample, args);
 			//			fprintf(stdout, "kernel evaluation: %f, mean %f \n", newval, gsl_stats_mean(resamplingResults->data, resamplingResults->stride, b));
 			gsl_vector_set(resamplingResults, b, newval);
+			rs_push(&rs, newval);
+			if (b % (int) 1e2 == 0)
+			fprintf(stdout, "achieved precision of %f.\n", sqrt(rs_variance(&rs) / (double) b));
 		}
 		gsl_matrix_free(subsample);
 		free(indices);
@@ -230,7 +236,7 @@ double U(
 	double* estthetasquared
 ) {
 	gsl_vector* resamplingResults;
-	double mean = Upure(data, B, m, r, kernel, NULL, computationConfIntLower, computationConfIntUpper, &resamplingResults);
+	double mean = Upure(data, B, m, r, kernel, NULL, computationConfIntLower, computationConfIntUpper, &resamplingResults, 0.01);
 	size_t B0 = resamplingResults->size; // in case explicit resampling was done, B might have changed, whence we reset it here.
 	size_t n = data->size1;
 	size_t d = data->size2;
@@ -241,7 +247,7 @@ double U(
 
 		double estimatorThetaSquareLower;
 		double estimatorThetaSquareUpper;
-		double estimatorThetaSquared = Upure(data, B, 2 * m, r, &kernelTS, kernel, &estimatorThetaSquareLower, &estimatorThetaSquareUpper, NULL);
+		double estimatorThetaSquared = Upure(data, B, 2 * m, r, &kernelTS, kernel, &estimatorThetaSquareLower, &estimatorThetaSquareUpper, NULL, 0.01);
 
 		// the estimated variance of the U-statistic
 		double varianceU = mean * mean - estimatorThetaSquared;
@@ -262,6 +268,9 @@ double U(
 		else {
 			fprintf(stderr, "variance estimator negative, can't compute confidence interval.\n");
 		}
+	}
+	else {
+		fprintf(stdout, "Can't estimate population variance, m <= n/2 not satisfied.\n");
 	}
 	gsl_vector_free(resamplingResults);
 	return(mean);

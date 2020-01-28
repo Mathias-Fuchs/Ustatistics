@@ -14,3 +14,6 @@ concrete
 /enc_temp_folder
 /buildWindows
 /buildWSL
+/core/buildWSL
+/concreteDatasetExample/buildWSL
+/regression/buildWSL

@@ -24,7 +24,7 @@ include_directories(${GSL_INCLUDE_DIR})
 # sub-projects.
 # core Ustatistics component; builds a static library.
 add_subdirectory(core)
-
+add_subdirectory(regression)
 add_subdirectory(standardExamplesUstatistics)
 
 # example executable containing the concrete dataset
