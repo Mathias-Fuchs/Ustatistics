@@ -19,8 +19,8 @@ attr(,"var.SampleVariance")
 
 // the kernel of the U-statistics for the variance is (x_1 - x_2)^2 / 2
 double kern(const gsl_matrix* data) {
-	return (gsl_matrix_get(data, 0, 0) - gsl_matrix_get(data, 1, 0)) *
-		(gsl_matrix_get(data, 0, 0) - gsl_matrix_get(data, 1, 0)) / 2.0;
+	double pp = gsl_matrix_get(data, 0, 0) - gsl_matrix_get(data, 1, 0);
+	return pp * pp / 2.0;
 }
 
 int main() {

@@ -4,6 +4,11 @@
 #include <gsl/gsl_vector.h>
 #include <gsl/gsl_rng.h>
 
+
+// the type a kernel is of: it is a pointer to a function eating const gsl_matrix*, and outputs double
+// this is a recursive typedef. Usually, the second argument can be ignored but it will come in handy when one wants to manufacture a new kernel from an old one.
+typedef  double (*kernel_t)(const gsl_matrix*, void*); 
+
 // full interface, comprising the computation confidence interval, and the one for theta, as well as an estimated value for the square of theta.
 
 
@@ -16,7 +21,7 @@ double U(
 	const size_t B,
 	const int m,
 	gsl_rng* r,
-	double(*kernel)(const gsl_matrix*),
+	kernel_t kernel,
 	double* computationConfIntLower,
 	double* computationConfIntUpper,
 	double* thetaConfIntLower,
@@ -29,7 +34,8 @@ double Upure(const gsl_matrix* data,
 	const size_t B,
 	const int m,
 	gsl_rng* r,
-	double(*kernel)(const gsl_matrix*),
+	kernel_t kernel,
+	void* args,
 	double* computationConfIntLower,
 	double* computationConfIntUpper,
 	gsl_vector** retainResamplingResults
@@ -44,5 +50,6 @@ struct kernel {
 	int p; // dimension of the data
 	// pointer to the actual function 
 	double(*kernel)(const gsl_matrix*);
+	// should also hold the information on the subgroup with respect to which it is invariant
 };
 
