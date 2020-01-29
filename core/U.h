@@ -1,6 +1,7 @@
 #pragma once
 
 #include <gsl/gsl_matrix.h>
+#include <gsl/gsl_vector.h>
 #include <gsl/gsl_rng.h>
 
 // full interface, comprising the computation confidence interval, and the one for theta, as well as an estimated value for the square of theta.
@@ -33,3 +34,15 @@ double Upure(const gsl_matrix* data,
 	double* computationConfIntUpper,
 	gsl_vector** retainResamplingResults
 );
+
+
+// future interface: a struct holding the information needed for 
+
+struct kernel {
+	// the degree
+	int m; // degree
+	int p; // dimension of the data
+	// pointer to the actual function 
+	double(*kernel)(const gsl_matrix*);
+};
+

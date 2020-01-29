@@ -121,7 +121,7 @@ double Upure(
 	);
 
 	if (explicitResampling) {
-		fprintf(stdout, "Have calculated the exact U-statistic and its square.");
+		fprintf(stdout, "Have calculated the exact U-statistic and its square.\n");
 		if (computationConfIntLower) *computationConfIntLower = mean;
 		if (computationConfIntUpper) *computationConfIntUpper = mean;
 		Usquared = mean * mean;
